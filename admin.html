@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Everglow Sanctuary - Master Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+    <style>
+        .admin-sidebar { background: var(--glass-bg); padding: 20px; border-radius: var(--border-radius); border: 1px solid var(--glass-border); }
+        .admin-nav-item { padding: 12px 20px; margin-bottom: 10px; border-radius: 15px; cursor: pointer; transition: var(--transition); border-left: 4px solid transparent; }
+        .admin-nav-item:hover { background: var(--lavender); }
+        .admin-nav-item.active { background: var(--lavender); border-left-color: var(--lavender-dark); font-weight: bold; }
+        .admin-card { margin-bottom: 25px; }
+        .daily-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; }
+        .daily-row:last-child { border-bottom: none; }
+        .mood-tag { padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; }
+    </style>
+</head>
+<body class="paper-texture">
+
+    <div class="floating-bg" id="floatingBg"></div>
+
+    <div class="app-container" style="max-width: 1400px;">
+        <!-- Admin Auth Panel -->
+        <div id="adminAuthPanel" class="auth-wrapper">
+            <div class="glass-card auth-card">
+                <div style="font-size: 3.5rem; margin-bottom: 15px;">👑</div>
+                <h2>Everglow Master Admin</h2>
+                <p style="margin-bottom: 30px;">Ayesha's Healing Journey Management</p>
+                
+                <input type="text" id="adminUsername" placeholder="Admin Username">
+                <input type="password" id="adminPassword" placeholder="Admin Password">
+                <button id="btnAdminLogin" class="primary" style="width: 100%; padding: 15px;">Login to Command Center</button>
+                <p id="authError" style="color: #ff6b6b; font-size: 0.9rem; margin-top: 15px;" class="hidden">Access Denied: Incorrect Credentials.</p>
+                <p style="margin-top: 25px;"><a href="index.html" style="color: var(--lavender-dark); text-decoration: none; font-weight: bold;">➔ Back to User Sanctuary</a></p>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard Shell -->
+        <div id="adminPanel" class="hidden">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding: 10px 0;">
+                <div>
+                    <h1 style="font-size: 1.8rem;">👑 Everglow Control Center</h1>
+                    <p style="font-size: 0.9rem; color: var(--text-light);">Monitoring Ayesha's Healing Progress</p>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <button class="primary" onclick="app.exportData()">Backup Data</button>
+                    <button class="danger" onclick="app.logout()">Logout Admin</button>
+                </div>
+            </header>
+
+            <div style="display: grid; grid-template-columns: 280px 1fr; gap: 30px;">
+                <!-- Sidebar Navigation -->
+                <aside class="admin-sidebar">
+                    <div class="admin-nav-item active" id="nav-stats" onclick="app.showAdminTab(event, 'stats')">📈 Overview & Stats</div>
+                    <div class="admin-nav-item" id="nav-daily" onclick="app.showAdminTab(event, 'daily')">📅 Daily Activity Report</div>
+                    <div class="admin-nav-item" id="nav-memories" onclick="app.showAdminTab(event, 'memories')">🖼️ Memory Scrapbook</div>
+                    <div class="admin-nav-item" id="nav-journals" onclick="app.showAdminTab(event, 'journals')">📖 Journal Entries</div>
+                    <div class="admin-nav-item" id="nav-logs" onclick="app.showAdminTab(event, 'logs')">📜 Full Raw Logs</div>
+                    <div class="admin-nav-item" id="nav-settings" onclick="app.showAdminTab(event, 'settings')">⚙️ System Settings</div>
+                    
+
+                </aside>
+
+                <!-- Content Area -->
+                <section id="adminContent">
+                    
+                    <!-- Stats Overview -->
+                    <div id="adminTabStats" class="admin-tab">
+                        <div class="dashboard-grid">
+                            <div class="glass-card stat-card admin-card">
+                                <p>Total Healing Points</p>
+                                <h3 id="adminTotalPoints">0</h3>
+                                <p style="font-size: 0.8rem; margin-top: 5px;">Overall user contribution</p>
+                            </div>
+                            <div class="glass-card stat-card admin-card">
+                                <p>Current Streak</p>
+                                <h3 id="adminStreak">0</h3>
+                                <p style="font-size: 0.8rem; margin-top: 5px;">Consecutive active days</p>
+                            </div>
+                            <div class="glass-card stat-card admin-card">
+                                <p>Healing Level</p>
+                                <h3 id="adminLevel">0</h3>
+                                <p style="font-size: 0.8rem; margin-top: 5px;">Current progression stage</p>
+                            </div>
+                        </div>
+                        <div class="glass-card">
+                            <h3>Journey Statistics</h3>
+                            <div id="adminJourneySummary" style="margin-top: 15px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Daily Report (New Feature) -->
+                    <div id="adminTabDaily" class="admin-tab hidden">
+                        <div class="glass-card">
+                            <h3>Daily Activity Report</h3>
+                            <p style="margin-bottom: 20px; font-size: 0.9rem;">Summarized user actions grouped by date.</p>
+                            <div id="adminDailyReportList"></div>
+                        </div>
+                    </div>
+
+                    <!-- Memories Scrapbook -->
+                    <div id="adminTabMemories" class="admin-tab hidden">
+                        <div class="glass-card">
+                            <h3>All Scrapbook Memories</h3>
+                            <div id="adminMemoriesGrid" class="dashboard-grid" style="margin-top: 15px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Journal Entries -->
+                    <div id="adminTabJournals" class="admin-tab hidden">
+                        <div class="glass-card">
+                            <h3>User's Private Journals</h3>
+                            <div id="adminJournalTableContainer" style="overflow-x: auto; margin-top: 15px;">
+                                <table id="adminJournalTable">
+                                    <thead><tr><th>Date</th><th>Mood</th><th>Feelings & Thoughts</th><th>Gratitude</th></tr></thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Full Raw Logs -->
+                    <div id="adminTabLogs" class="admin-tab hidden">
+                        <div class="glass-card">
+                            <h3>Complete Activity Logs</h3>
+                            <div style="overflow-x: auto; margin-top: 15px;">
+                                <table id="adminLogTable">
+                                    <thead><tr><th>Timestamp</th><th>Action Title</th><th>Details</th><th>Points</th></tr></thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Settings (Reset Control) -->
+                    <div id="adminTabSettings" class="admin-tab hidden">
+                        <div class="glass-card" style="border-top: 5px solid #ff6b6b;">
+                            <h3 style="color: #ff6b6b;">⚙️ Danger Zone - User Data Control</h3>
+                            <p style="margin-bottom: 25px;">Yahan se aap user ka data reset ya delete kar sakte hain. Be careful!</p>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div style="padding: 20px; background: #fff; border-radius: 20px; border: 1px solid #eee;">
+                                    <h4>Soft Reset (Fresh Stats)</h4>
+                                    <p style="font-size: 0.8rem; margin: 10px 0;">Is se user ki points, streak, aur level 0 ho jayenge, lekin uski yaadein aur journals mehfooz rahengi.</p>
+                                    <button class="secondary" style="width: 100%;" onclick="app.resetUserStats()">Reset Only Stats</button>
+                                </div>
+                                
+                                <div style="padding: 20px; background: #fff; border-radius: 20px; border: 1px solid #fee;">
+                                    <h4 style="color: #ff6b6b;">Full Reset (Fresh Start)</h4>
+                                    <p style="font-size: 0.8rem; margin: 10px 0;">Is se user ka poora data delete ho jayega (Yaadein, Logs, Journals, Stats). User ko bilkul new interface milega.</p>
+                                    <button class="danger" style="width: 100%;" onclick="app.resetFullUser()">Full Database Wipe</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </section>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
