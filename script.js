@@ -5,27 +5,28 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
 };
 
 
-class LocalDB {
-    constructor(prefix = 'bloom_') {
-        this.prefix = prefix;
+// Initialize Supabase
+const SUPABASE_URL = 'https://rmjulmgszlogdpclldhp.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_pPcJqEpi7E6sigaCeV2JSQ_huoT_MRL';
+const supabase = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+class SupabaseDB {
+    async get(table) {
+        const { data, error } = await supabase.from(table).select('*');
+        if (error) console.error(`Error fetching ${table}:`, error);
+        return data || [];
     }
-    _getKey(c) { return this.prefix + c; }
-    get(c) {
-        const d = localStorage.getItem(this._getKey(c));
-        return d ? JSON.parse(d) : [];
+    async insert(table, item) {
+        // Remove local-only properties if any
+        const { data, error } = await supabase.from(table).insert([item]).select();
+        if (error) console.error(`Error inserting into ${table}:`, error);
+        return data ? data[0] : item;
     }
-    insert(c, item) {
-        const d = this.get(c);
-        item.id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-        item.createdAt = new Date().toISOString();
-        d.push(item);
-        localStorage.setItem(this._getKey(c), JSON.stringify(d));
-        return item;
-    }
-    getProfile() {
-        const p = localStorage.getItem(this.prefix + 'profile');
-        if (!p) {
+    async getProfile() {
+        const { data, error } = await supabase.from('profiles').select('*').eq('id', 'ayesha').single();
+        if (error || !data) {
             const def = { 
+                id: 'ayesha',
                 xp: 0, 
                 points: 0,
                 level: 1, 
@@ -35,18 +36,32 @@ class LocalDB {
                 currentJourneyStep: 1, 
                 journeyData: {} 
             };
-            this.setProfile(def);
+            if (error && error.code === 'PGRST116') { // Not found
+                await supabase.from('profiles').insert([def]);
+            }
             return def;
         }
-        return JSON.parse(p);
+        return data;
     }
-    setProfile(p) { localStorage.setItem(this.prefix + 'profile', JSON.stringify(p)); }
-    clear() {
-        Object.keys(localStorage).forEach(k => { if(k.startsWith(this.prefix)) localStorage.removeItem(k); });
+    async setProfile(p) {
+        const { error } = await supabase.from('profiles').update(p).eq('id', 'ayesha');
+        if (error) console.error('Error updating profile:', error);
+    }
+    async clear() {
+        // For a full reset, we truncate the tables or delete all rows
+        const tables = ['activityLog', 'memories', 'blessings', 'dailyJourneys'];
+        for (const t of tables) {
+            await supabase.from(t).delete().neq('id', '0'); // Delete all rows
+        }
+        await this.setProfile({ 
+            xp: 0, points: 0, level: 1, streak: 0, 
+            lastLogin: null, lastJourneyDate: null, 
+            currentJourneyStep: 1, journeyData: {} 
+        });
     }
 }
 
-const db = new LocalDB();
+const db = new SupabaseDB();
 
 const POINT_VALUES = {
     mood: 5,
@@ -107,10 +122,10 @@ const app = {
         tempImages: []
     },
 
-    init() {
+    async init() {
         this.checkAuth();
         this.setupEventListeners();
-        this.updateMainScreenState();
+        await this.updateMainScreenState();
     },
 
     setupEventListeners() {
@@ -138,12 +153,12 @@ const app = {
         // Journey Mood Selection
         const moodBtns = document.querySelectorAll('#journeyMoodGrid .mood-btn');
         moodBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 document.querySelectorAll('#journeyMoodGrid .mood-btn').forEach(b => b.classList.remove('selected'));
                 e.target.classList.add('selected');
                 this.state.journeyData.mood = e.target.getAttribute('data-mood');
-                this.logAction('mood', 'Mood Submitted', `Mood: ${this.state.journeyData.mood}`);
-                this.addPoints(POINT_VALUES.mood);
+                await this.logAction('mood', 'Mood Submitted', `Mood: ${this.state.journeyData.mood}`);
+                await this.addPoints(POINT_VALUES.mood);
                 const nextBtn = document.getElementById('btnNext1');
                 if(nextBtn) nextBtn.classList.remove('hidden');
             });
@@ -167,16 +182,16 @@ const app = {
         }
     },
 
-    login(role) {
+    async login(role) {
         this.state.currentUser = role;
         sessionStorage.setItem('bloom_session', role);
         if(role === 'ayesha') {
             this.showPanel('userPanel');
             this.showScreen('welcomeScreen');
-            this.updateStats();
+            await this.updateStats();
         } else {
             this.showPanel('adminPanel');
-            this.renderAdmin();
+            await this.renderAdmin();
         }
     },
 
@@ -194,20 +209,20 @@ const app = {
         if(target) target.classList.remove('hidden');
     },
 
-    showScreen(id) {
+    async showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         const target = document.getElementById(id);
         if(target) target.classList.remove('hidden');
         
-        if(id === 'memoryBookScreen') this.renderMemoryBook();
-        if(id === 'timelineScreen') this.renderTimeline();
-        if(id === 'dashboardScreen') this.renderDashboard();
-        if(id === 'logScreen') this.renderLog();
+        if(id === 'memoryBookScreen') await this.renderMemoryBook();
+        if(id === 'timelineScreen') await this.renderTimeline();
+        if(id === 'dashboardScreen') await this.renderDashboard();
+        if(id === 'logScreen') await this.renderLog();
     },
 
     // Points & Log System
-    addPoints(pts) {
-        const p = db.getProfile();
+    async addPoints(pts) {
+        const p = await db.getProfile();
         p.points += pts;
         p.xp += pts;
         if(p.xp >= p.level * 200) {
@@ -215,11 +230,11 @@ const app = {
             p.level++;
             alert(`🎉 Level Up! You are now Level ${p.level}!`);
         }
-        db.setProfile(p);
-        this.updateStats();
+        await db.setProfile(p);
+        await this.updateStats();
     },
 
-    logAction(type, title, details) {
+    async logAction(type, title, details) {
         const entry = {
             type,
             title,
@@ -228,12 +243,12 @@ const app = {
             date: new Date().toLocaleDateString(),
             time: new Date().toLocaleTimeString()
         };
-        db.insert('activityLog', entry);
+        await db.insert('activityLog', entry);
     },
 
     // Journey Flow (11 Steps)
-    updateMainScreenState() {
-        const p = db.getProfile();
+    async updateMainScreenState() {
+        const p = await db.getProfile();
         const today = new Date().toDateString();
         const btnStart = document.getElementById('btnMainStartJourney');
         const btnCont = document.getElementById('btnMainContinueJourney');
@@ -261,22 +276,22 @@ const app = {
         }
     },
 
-    startJourney() {
-        const p = db.getProfile();
+    async startJourney() {
+        const p = await db.getProfile();
         p.currentJourneyStep = 1;
         p.journeyData = {};
-        db.setProfile(p);
+        await db.setProfile(p);
         this.state.journeyStep = 1;
         this.state.journeyData = {};
-        this.showScreen('journeyScreen');
+        await this.showScreen('journeyScreen');
         this.renderStep();
     },
 
-    continueJourney() {
-        const p = db.getProfile();
+    async continueJourney() {
+        const p = await db.getProfile();
         this.state.journeyStep = p.currentJourneyStep;
         this.state.journeyData = p.journeyData;
-        this.showScreen('journeyScreen');
+        await this.showScreen('journeyScreen');
         this.renderStep();
     },
 
@@ -318,13 +333,13 @@ const app = {
         if(s === 10 && d.oldMemoryDone) document.getElementById('btnNext10').classList.remove('hidden');
     },
 
-    nextStep() {
+    async nextStep() {
         if(this.state.journeyStep < 11) {
             this.state.journeyStep++;
-            const p = db.getProfile();
+            const p = await db.getProfile();
             p.currentJourneyStep = this.state.journeyStep;
             p.journeyData = this.state.journeyData;
-            db.setProfile(p);
+            await db.setProfile(p);
             this.renderStep();
         }
     },
@@ -336,31 +351,31 @@ const app = {
         }
     },
 
-    completeStepAction(type) {
+    async completeStepAction(type) {
         if(type === 'mission') {
             const notes = document.getElementById('missionNotesJ').value;
             const file = document.getElementById('missionPhotoJ').files[0];
             const missionText = document.getElementById('journeyMissionText').innerText;
 
-            const finalizeMission = (photoBase64 = null) => {
+            const finalizeMission = async (photoBase64 = null) => {
                 this.state.journeyData.mission = {
                     text: missionText,
                     notes: notes,
                     photo: photoBase64
                 };
                 this.state.journeyData.missionCompleted = true;
-                this.logAction('mission', 'Daily Mission Completed', `Task: ${missionText}`);
-                this.addPoints(POINT_VALUES.mission);
+                await this.logAction('mission', 'Daily Mission Completed', `Task: ${missionText}`);
+                await this.addPoints(POINT_VALUES.mission);
                 document.getElementById('btnNext4').classList.remove('hidden');
                 alert("Mission details saved! ✨");
             };
 
             if(file) {
                 const reader = new FileReader();
-                reader.onload = (e) => finalizeMission(e.target.result);
+                reader.onload = async (e) => await finalizeMission(e.target.result);
                 reader.readAsDataURL(file);
             } else {
-                finalizeMission();
+                await finalizeMission();
             }
         }
         if(type === 'journal') {
@@ -370,18 +385,18 @@ const app = {
                 gratitude: document.getElementById('jGratitudeJ').value,
                 improve: document.getElementById('jImproveJ').value
             };
-            this.logAction('journal', 'Journal Saved', 'Step 5 complete');
-            this.addPoints(POINT_VALUES.journal);
+            await this.logAction('journal', 'Journal Saved', 'Step 5 complete');
+            await this.addPoints(POINT_VALUES.journal);
             document.getElementById('btnNext5').classList.remove('hidden');
         }
         if(type === 'photo') {
             const file = document.getElementById('imgUploadJ').files[0];
             if(file) {
                 const reader = new FileReader();
-                reader.onload = (e) => {
+                reader.onload = async (e) => {
                     this.state.journeyData.photo = { base64: e.target.result, caption: document.getElementById('imgCaptionJ').value };
-                    this.logAction('photo', 'Daily Photo Uploaded', 'Step 6 complete');
-                    this.addPoints(POINT_VALUES.photo);
+                    await this.logAction('photo', 'Daily Photo Uploaded', 'Step 6 complete');
+                    await this.addPoints(POINT_VALUES.photo);
                     alert("Photo uploaded!");
                 };
                 reader.readAsDataURL(file);
@@ -389,31 +404,31 @@ const app = {
         }
         if(type === 'affirmation') {
             this.state.journeyData.affirmationDone = true;
-            this.logAction('affirmation', 'Affirmation Completed', 'Step 7 complete');
-            this.addPoints(POINT_VALUES.affirmation);
+            await this.logAction('affirmation', 'Affirmation Completed', 'Step 7 complete');
+            await this.addPoints(POINT_VALUES.affirmation);
             document.getElementById('btnNext7').classList.remove('hidden');
         }
         if(type === 'blessing') {
             const b = document.getElementById('blessingJ').value;
             if(!b) return;
             this.state.journeyData.blessing = b;
-            this.logAction('blessing', 'Blessing Added', 'Step 8 complete');
-            this.addPoints(POINT_VALUES.blessing);
-            db.insert('blessings', { text: b });
+            await this.logAction('blessing', 'Blessing Added', 'Step 8 complete');
+            await this.addPoints(POINT_VALUES.blessing);
+            await db.insert('blessings', { text: b });
             document.getElementById('btnNext8').classList.remove('hidden');
         }
         if(type === 'activity') {
             const file = document.getElementById('activityPhotoJ').files[0];
             const activityText = document.getElementById('journeyActivityText').innerText;
 
-            const finalizeActivity = (photoBase64 = null) => {
+            const finalizeActivity = async (photoBase64 = null) => {
                 this.state.journeyData.activity = {
                     text: activityText,
                     photo: photoBase64
                 };
                 this.state.journeyData.activityDone = true;
-                this.logAction('activity', 'Activity Completed', `Task: ${activityText}`);
-                this.addPoints(POINT_VALUES.breathe); // Activity points
+                await this.logAction('activity', 'Activity Completed', `Task: ${activityText}`);
+                await this.addPoints(POINT_VALUES.breathe); // Activity points
                 const nextBtn = document.getElementById('btnNext9');
                 if(nextBtn) nextBtn.classList.remove('hidden');
                 alert("Activity saved! ✨");
@@ -421,10 +436,10 @@ const app = {
 
             if(file) {
                 const reader = new FileReader();
-                reader.onload = (e) => finalizeActivity(e.target.result);
+                reader.onload = async (e) => await finalizeActivity(e.target.result);
                 reader.readAsDataURL(file);
             } else {
-                finalizeActivity();
+                await finalizeActivity();
             }
         }
         if(type === 'oldMemory') {
@@ -436,35 +451,35 @@ const app = {
                 type: 'Old Memory Step'
             };
             if(!m.title) return alert("Title is required.");
-            db.insert('memories', m);
+            await db.insert('memories', m);
             this.state.journeyData.oldMemoryDone = true;
-            this.logAction('old_memory', 'Old Memory Added', `Step 10: ${m.title}`);
-            this.addPoints(POINT_VALUES.old_memory);
+            await this.logAction('old_memory', 'Old Memory Added', `Step 10: ${m.title}`);
+            await this.addPoints(POINT_VALUES.old_memory);
             document.getElementById('btnNext10').classList.remove('hidden');
             this.state.tempImagesJ = [];
         }
     },
 
-    startBreatheExercise() {
+    async startBreatheExercise() {
         let sec = 60;
         const text = document.getElementById('journeyBreatheTimer');
         const circle = document.getElementById('journeyBreatheCircle');
         if(this.state.breatheTimer) clearInterval(this.state.breatheTimer);
-        this.state.breatheTimer = setInterval(() => {
+        this.state.breatheTimer = setInterval(async () => {
             sec--;
             text.innerText = `${sec} seconds`;
             circle.innerText = sec % 8 < 4 ? "Inhale..." : "Exhale...";
             if(sec <= 0) {
                 clearInterval(this.state.breatheTimer);
-                this.logAction('breathe', 'Breathing Completed', 'Step 3 complete');
-                this.addPoints(POINT_VALUES.breathe);
+                await this.logAction('breathe', 'Breathing Completed', 'Step 3 complete');
+                await this.addPoints(POINT_VALUES.breathe);
                 document.getElementById('btnNext3').classList.remove('hidden');
             }
         }, 1000);
     },
 
-    finishJourney() {
-        const p = db.getProfile();
+    async finishJourney() {
+        const p = await db.getProfile();
         const today = new Date().toDateString();
         
         // Only increment streak once per day
@@ -474,14 +489,14 @@ const app = {
         
         p.lastJourneyDate = today;
         p.currentJourneyStep = 1;
-        db.setProfile(p);
+        await db.setProfile(p);
 
-        this.addPoints(POINT_VALUES.journey_complete);
-        this.logAction('journey_complete', 'Daily Journey Completed', 'Full 11 steps finished');
-        db.insert('dailyJourneys', { date: p.lastJourneyDate, data: this.state.journeyData });
+        await this.addPoints(POINT_VALUES.journey_complete);
+        await this.logAction('journey_complete', 'Daily Journey Completed', 'Full 11 steps finished');
+        await db.insert('dailyJourneys', { date: p.lastJourneyDate, data: this.state.journeyData });
         
-        this.showScreen('welcomeScreen');
-        this.updateMainScreenState();
+        await this.showScreen('welcomeScreen');
+        await this.updateMainScreenState();
     },
 
     // Memories
@@ -505,7 +520,7 @@ const app = {
         else this.state.tempImages = imgList;
     },
 
-    saveMemory() {
+    async saveMemory() {
         const m = {
             title: document.getElementById('mTitle').value,
             date: document.getElementById('mDate').value,
@@ -517,17 +532,18 @@ const app = {
             tags: document.getElementById('mTags').value.split(',').map(t => t.trim()),
             images: this.state.tempImages
         };
-        db.insert('memories', m);
-        this.logAction('old_memory', 'New Memory Added', m.title);
-        this.addPoints(POINT_VALUES.old_memory);
+        await db.insert('memories', m);
+        await this.logAction('old_memory', 'New Memory Added', m.title);
+        await this.addPoints(POINT_VALUES.old_memory);
         this.closeModal('memoryModal');
-        this.renderMemoryBook();
+        await this.renderMemoryBook();
     },
 
-    renderMemoryBook() {
+    async renderMemoryBook() {
         const grid = document.getElementById('memoryBookGrid');
         grid.innerHTML = '';
-        db.get('memories').reverse().forEach(m => {
+        const memories = await db.get('memories');
+        memories.reverse().forEach(m => {
             const div = document.createElement('div');
             div.className = 'memory-card paper-texture tape-effect';
             div.innerHTML = `
@@ -543,8 +559,8 @@ const app = {
         });
     },
 
-    openRandomMemory() {
-        const list = db.get('memories');
+    async openRandomMemory() {
+        const list = await db.get('memories');
         if(!list.length) return alert("No memories yet!");
         const m = list[Math.floor(Math.random() * list.length)];
         document.getElementById('randomMemoryContent').innerHTML = `
@@ -557,8 +573,8 @@ const app = {
     },
 
     // Dashboards
-    updateStats() {
-        const p = db.getProfile();
+    async updateStats() {
+        const p = await db.getProfile();
         ['uiLevel', 'dashLevel'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerText = p.level; });
         ['uiStreak', 'dashStreak'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerText = p.streak; });
         ['uiPoints', 'dashPoints'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerText = p.points; });
@@ -567,23 +583,27 @@ const app = {
         
         if(document.getElementById('dashTodayPoints')) {
             const today = new Date().toLocaleDateString();
-            const todayPts = db.get('activityLog').filter(l => l.date === today).reduce((sum, l) => sum + l.points, 0);
+            const logs = await db.get('activityLog');
+            const todayPts = logs.filter(l => l.date === today).reduce((sum, l) => sum + l.points, 0);
             document.getElementById('dashTodayPoints').innerText = todayPts;
         }
     },
 
-    renderDashboard() {
-        this.updateStats();
-        const logs = db.get('activityLog').reverse().slice(0, 5);
+    async renderDashboard() {
+        await this.updateStats();
+        const logsAll = await db.get('activityLog');
+        const logs = logsAll.reverse().slice(0, 5);
         const cont = document.getElementById('dashRecentLog');
         cont.innerHTML = logs.map(l => `<p style="font-size:0.8rem; border-bottom:1px solid #eee; padding:5px 0;">[${l.time}] ${l.title} (+${l.points} pts)</p>`).join('');
         
-        const latestM = db.get('memories').slice(-1)[0];
+        const memories = await db.get('memories');
+        const latestM = memories.slice(-1)[0];
         if(latestM) document.getElementById('dashLatestMemory').innerText = latestM.title;
     },
 
-    renderLog() {
-        const logs = db.get('activityLog').reverse();
+    async renderLog() {
+        const logs = await db.get('activityLog');
+        logs.reverse();
         document.getElementById('totalActions').innerText = logs.length;
         document.getElementById('fullLogList').innerHTML = logs.map(l => `
             <div style="background:white; padding:10px; border-radius:10px; margin-bottom:10px; border-left:4px solid var(--blush-pink);">
@@ -593,13 +613,13 @@ const app = {
     },
 
     // Admin Panel Logic
-    showAdminTab(e, tabId) {
+    async showAdminTab(e, tabId) {
         document.querySelectorAll('.admin-tab').forEach(t => t.classList.add('hidden'));
         document.querySelectorAll('.admin-nav-item').forEach(b => b.classList.remove('active'));
         const tabEl = document.getElementById(`adminTab${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`);
         if(tabEl) tabEl.classList.remove('hidden');
         if(e && e.target) e.target.classList.add('active');
-        this.renderAdmin();
+        await this.renderAdmin();
     },
 
     startJourney() {
@@ -646,11 +666,14 @@ const app = {
         a.click();
     },
 
-    renderAdmin() {
-        const p = db.getProfile();
-        const logs = db.get('activityLog').reverse();
-        const journeys = db.get('dailyJourneys').reverse();
-        const memories = db.get('memories').reverse();
+    async renderAdmin() {
+        const p = await db.getProfile();
+        const logs = await db.get('activityLog');
+        logs.reverse();
+        const journeys = await db.get('dailyJourneys');
+        journeys.reverse();
+        const memories = await db.get('memories');
+        memories.reverse();
 
         // Update Stats
         if(document.getElementById('adminTotalPoints')) document.getElementById('adminTotalPoints').innerText = p.points;
@@ -740,7 +763,7 @@ const app = {
         // Journals (Extracted from Daily Journeys)
         const tbodyJ = document.querySelector('#adminJournalTable tbody');
         if(tbodyJ) {
-            const journals = journeys.filter(j => j.data && j.data.journal).map(j => ({
+            const journalsList = journeys.filter(j => j.data && j.data.journal).map(j => ({
                 date: j.date,
                 mood: j.data.mood,
                 feeling: j.data.journal.feeling,
@@ -748,7 +771,7 @@ const app = {
                 gratitude: j.data.journal.gratitude
             }));
             
-            tbodyJ.innerHTML = journals.map(j => `
+            tbodyJ.innerHTML = journalsList.map(j => `
                 <tr>
                     <td>${j.date}</td>
                     <td><span class="mood-tag" style="background:var(--lavender);">${j.mood}</span></td>
@@ -822,20 +845,21 @@ const app = {
             p.currentJourneyStep = 1;
             db.setProfile(p);
             alert("User stats reset! Interface will be fresh for stats.");
-            this.renderAdmin();
+            await this.renderAdmin();
         }
     },
 
     openModal(id) { document.getElementById(id).classList.remove('hidden'); },
     closeModal(id) { document.getElementById(id).classList.add('hidden'); },
-    openRandomBlessing() {
-        const b = db.get('blessings');
+    async openRandomBlessing() {
+        const b = await db.get('blessings');
         if(!b.length) return alert("Jar is empty!");
         document.getElementById('randomBlessingDisplay').innerText = `"${b[Math.floor(Math.random() * b.length)].text}"`;
     },
 
-    renderTimeline() {
-        const logs = db.get('activityLog').reverse();
+    async renderTimeline() {
+        const logs = await db.get('activityLog');
+        logs.reverse();
         const cont = document.getElementById('timelineContainer');
         if(!cont) return;
         cont.innerHTML = '';
@@ -863,14 +887,14 @@ const app = {
         });
     },
 
-    startCalmMode() {
-        this.showScreen('calmModeScreen');
+    async startCalmMode() {
+        await this.showScreen('calmModeScreen');
         let sec = 60;
         const text = document.getElementById('calmBreatheTimer');
         const circle = document.getElementById('calmBreatheCircle');
         if(this.state.calmTimer) clearInterval(this.state.calmTimer);
         
-        this.state.calmTimer = setInterval(() => {
+        this.state.calmTimer = setInterval(async () => {
             sec--;
             if(text) text.innerText = `${sec} seconds`;
             if(circle) circle.innerText = sec % 8 < 4 ? "Inhale..." : "Exhale...";
@@ -878,10 +902,10 @@ const app = {
             if(sec <= 0) {
                 clearInterval(this.state.calmTimer);
                 alert("Calm Mode Finished. Alhamdulillah. ✨");
-                this.showScreen('welcomeScreen');
+                await this.showScreen('welcomeScreen');
             }
         }, 1000);
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => app.init());
+document.addEventListener('DOMContentLoaded', async () => await app.init());
