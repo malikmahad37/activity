@@ -4,26 +4,27 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
     return false;
 };
 
-
 // Initialize Supabase
 const SUPABASE_URL = 'https://rmjulmgszlogdpclldhp.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_pPcJqEpi7E6sigaCeV2JSQ_huoT_MRL';
-const supabase = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 class SupabaseDB {
     async get(table) {
-        const { data, error } = await supabase.from(table).select('*');
+        if (!supabaseClient) return [];
+        const { data, error } = await supabaseClient.from(table).select('*');
         if (error) console.error(`Error fetching ${table}:`, error);
         return data || [];
     }
     async insert(table, item) {
-        // Remove local-only properties if any
-        const { data, error } = await supabase.from(table).insert([item]).select();
+        if (!supabaseClient) return item;
+        const { data, error } = await supabaseClient.from(table).insert([item]).select();
         if (error) console.error(`Error inserting into ${table}:`, error);
         return data ? data[0] : item;
     }
     async getProfile() {
-        const { data, error } = await supabase.from('profiles').select('*').eq('id', 'ayesha').single();
+        if (!supabaseClient) return null;
+        const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', 'ayesha').single();
         if (error || !data) {
             const def = { 
                 id: 'ayesha',
@@ -37,21 +38,22 @@ class SupabaseDB {
                 journeyData: {} 
             };
             if (error && error.code === 'PGRST116') { // Not found
-                await supabase.from('profiles').insert([def]);
+                await supabaseClient.from('profiles').insert([def]);
             }
             return def;
         }
         return data;
     }
     async setProfile(p) {
-        const { error } = await supabase.from('profiles').update(p).eq('id', 'ayesha');
+        if (!supabaseClient) return;
+        const { error } = await supabaseClient.from('profiles').update(p).eq('id', 'ayesha');
         if (error) console.error('Error updating profile:', error);
     }
     async clear() {
-        // For a full reset, we truncate the tables or delete all rows
+        if (!supabaseClient) return;
         const tables = ['activityLog', 'memories', 'blessings', 'dailyJourneys'];
         for (const t of tables) {
-            await supabase.from(t).delete().neq('id', '0'); // Delete all rows
+            await supabaseClient.from(t).delete().neq('id', '0'); // Delete all rows
         }
         await this.setProfile({ 
             xp: 0, points: 0, level: 1, streak: 0, 
@@ -129,26 +131,19 @@ const app = {
     },
 
     setupEventListeners() {
-        // Auth
         const btnAyesha = document.getElementById('btnAyeshaLogin');
-        if(btnAyesha) btnAyesha.addEventListener('click', () => this.login('ayesha'));
-
-        const secretTrigger = document.getElementById('secretAdminTrigger');
-        if(secretTrigger) {
-            secretTrigger.addEventListener('click', () => {
-                document.getElementById('adminLoginSection').classList.toggle('hidden');
-            });
-        }
-
+        if(btnAyesha) btnAyesha.onclick = () => this.login('ayesha');
+        
         const btnAdmin = document.getElementById('btnAdminLogin');
-        if(btnAdmin) {
-            btnAdmin.addEventListener('click', () => {
-                const u = document.getElementById('adminUsername').value;
-                const p = document.getElementById('adminPassword').value;
-                if(u === 'admin' && p === '12345') this.login('admin');
-                else document.getElementById('authError').classList.remove('hidden');
-            });
-        }
+        if(btnAdmin) btnAdmin.onclick = () => {
+            const u = document.getElementById('adminUsername').value;
+            const p = document.getElementById('adminPassword').value;
+            if(u === 'admin' && p === 'admin123') this.login('admin');
+            else alert('Invalid admin credentials.');
+        };
+
+        const btnLogout = document.getElementById('btnLogout');
+        if(btnLogout) btnLogout.onclick = () => this.logout();
 
         // Journey Mood Selection
         const moodBtns = document.querySelectorAll('#journeyMoodGrid .mood-btn');
@@ -165,21 +160,10 @@ const app = {
         });
     },
 
-    // Auth & Basic UI
     checkAuth() {
-        const isAdminPage = window.location.pathname.includes('admin.html');
-        const s = sessionStorage.getItem('bloom_session');
-        
-        if(s) {
-            if(isAdminPage && s !== 'admin') {
-                this.showPanel('adminAuthPanel');
-            } else {
-                this.login(s);
-            }
-        } else {
-            if(isAdminPage) this.showPanel('adminAuthPanel');
-            else this.showPanel('authPanel');
-        }
+        const session = sessionStorage.getItem('bloom_session');
+        if(session) this.login(session);
+        else this.showPanel('authPanel');
     },
 
     async login(role) {
@@ -201,10 +185,7 @@ const app = {
     },
 
     showPanel(id) {
-        ['authPanel', 'userPanel', 'adminPanel', 'adminAuthPanel'].forEach(p => {
-            const el = document.getElementById(p);
-            if(el) el.classList.add('hidden');
-        });
+        document.querySelectorAll('.auth-wrapper, #userPanel, #adminPanel').forEach(p => p.classList.add('hidden'));
         const target = document.getElementById(id);
         if(target) target.classList.remove('hidden');
     },
@@ -254,15 +235,13 @@ const app = {
         const btnCont = document.getElementById('btnMainContinueJourney');
         const msgComp = document.getElementById('todayCompletedMsg');
 
-        if(btnStart) btnStart.classList.add('hidden');
-        if(btnCont) btnCont.classList.add('hidden');
-        if(msgComp) msgComp.classList.add('hidden');
-
         if(p.currentJourneyStep > 1) {
+            if(btnStart) btnStart.classList.add('hidden');
             if(btnCont) btnCont.classList.remove('hidden');
         } else {
             if(btnStart) {
                 btnStart.classList.remove('hidden');
+                if(btnCont) btnCont.classList.add('hidden');
                 if(p.lastJourneyDate === today) {
                     btnStart.innerText = "Start Another Journey 🌸";
                     if(msgComp) {
@@ -271,6 +250,7 @@ const app = {
                     }
                 } else {
                     btnStart.innerText = "Start Today's Journey";
+                    if(msgComp) msgComp.classList.add('hidden');
                 }
             }
         }
@@ -296,37 +276,49 @@ const app = {
     },
 
     renderStep() {
-        document.querySelectorAll('.journey-step').forEach(s => s.classList.add('hidden'));
-        document.getElementById(`step${this.state.journeyStep}`).classList.remove('hidden');
-        document.getElementById('currentStepNum').innerText = this.state.journeyStep;
-        document.getElementById('journeyProgressBar').style.width = `${(this.state.journeyStep / 11) * 100}%`;
+        const s = this.state.journeyStep;
+        document.querySelectorAll('.journey-step').forEach(step => step.classList.add('hidden'));
+        const currentStepEl = document.getElementById(`step${s}`);
+        if(currentStepEl) currentStepEl.classList.remove('hidden');
+        
+        document.getElementById('journeyTitle').innerText = `Step ${s}: ${this.getStepTitle(s)}`;
+        document.getElementById('journeyProgress').style.width = `${(s / 11) * 100}%`;
 
-        // Reset step-specific next buttons if already completed in state
+        if(s === 1) {
+            // Mood selection logic handled in setupEventListeners
+        }
+        if(s === 2) {
+            const mood = this.state.journeyData.mood;
+            document.getElementById('journeyQuote').innerText = DATA.quotes[mood] || "Believe in yourself.";
+        }
+        if(s === 3) {
+            // Breathing exercise
+            this.startBreatheExercise();
+        }
+        if(s === 4) {
+            const m = DATA.missions[Math.floor(Math.random() * DATA.missions.length)];
+            document.getElementById('journeyMissionText').innerText = m;
+        }
+        if(s === 9) {
+            const a = DATA.activities[Math.floor(Math.random() * DATA.activities.length)];
+            document.getElementById('journeyActivityText').innerText = a;
+        }
+        
         this.checkStepCompletionUI();
+    },
 
-        if(this.state.journeyStep === 2) document.getElementById('journeyMoodMsg').innerText = DATA.quotes[this.state.journeyData.mood] || "Breathe and relax.";
-        if(this.state.journeyStep === 3) this.startBreatheExercise();
-        if(this.state.journeyStep === 4) {
-            const list = DATA.missions;
-            document.getElementById('journeyMissionText').innerText = list[Math.floor(Math.random() * list.length)];
-        }
-        if(this.state.journeyStep === 7) {
-            const list = DATA.affirmations;
-            document.getElementById('journeyAffirmationText').innerText = list[Math.floor(Math.random() * list.length)];
-        }
-        if(this.state.journeyStep === 9) {
-            const list = DATA.activities;
-            document.getElementById('journeyActivityText').innerText = list[Math.floor(Math.random() * list.length)];
-        }
+    getStepTitle(s) {
+        const titles = ["Check-in Mood", "Positive Affirmation", "Breathing Exercise", "Daily Mission", "Journal Entry", "Daily Photo", "Self Love Affirmation", "Counting Blessings", "Mindful Activity", "Purani Achi Yaadein", "Completion"];
+        return titles[s-1];
     },
 
     checkStepCompletionUI() {
-        // Logic to show Next button if step was previously completed (for Continue flow)
         const s = this.state.journeyStep;
         const d = this.state.journeyData;
         if(s === 1 && d.mood) document.getElementById('btnNext1').classList.remove('hidden');
         if(s === 4 && d.missionCompleted) document.getElementById('btnNext4').classList.remove('hidden');
         if(s === 5 && d.journal) document.getElementById('btnNext5').classList.remove('hidden');
+        if(s === 6 && d.photo) document.getElementById('btnNext6').classList.remove('hidden');
         if(s === 7 && d.affirmationDone) document.getElementById('btnNext7').classList.remove('hidden');
         if(s === 8 && d.blessing) document.getElementById('btnNext8').classList.remove('hidden');
         if(s === 9 && d.activityDone) document.getElementById('btnNext9').classList.remove('hidden');
@@ -344,10 +336,9 @@ const app = {
         }
     },
 
-    prevStep() {
-        if(this.state.journeyStep > 1) {
-            this.state.journeyStep--;
-            this.renderStep();
+    cancelJourney() {
+        if(confirm("Are you sure you want to cancel today's journey? Your progress will be saved.")) {
+            this.showScreen('welcomeScreen');
         }
     },
 
@@ -500,23 +491,15 @@ const app = {
     },
 
     // Memories
-    previewImages(e, target) {
-        const files = e.target.files;
-        const prev = document.getElementById(target);
-        prev.innerHTML = '';
+    handleImageSelection(id, context = 'memory') {
+        const files = document.getElementById(id).files;
         const imgList = [];
-        Array.from(files).forEach(f => {
-            const r = new FileReader();
-            r.onload = (ev) => {
-                const img = document.createElement('img');
-                img.src = ev.target.result;
-                img.className = 'preview-img';
-                prev.appendChild(img);
-                imgList.push(ev.target.result);
-            };
-            r.readAsDataURL(f);
-        });
-        if(target === 'mPreviewJ') this.state.tempImagesJ = imgList;
+        for(let i=0; i<files.length; i++) {
+            const reader = new FileReader();
+            reader.onload = (e) => imgList.push(e.target.result);
+            reader.readAsDataURL(files[i]);
+        }
+        if(context === 'journey') this.state.tempImagesJ = imgList;
         else this.state.tempImages = imgList;
     },
 
@@ -575,6 +558,7 @@ const app = {
     // Dashboards
     async updateStats() {
         const p = await db.getProfile();
+        if(!p) return;
         ['uiLevel', 'dashLevel'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerText = p.level; });
         ['uiStreak', 'dashStreak'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerText = p.streak; });
         ['uiPoints', 'dashPoints'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerText = p.points; });
@@ -622,50 +606,6 @@ const app = {
         await this.renderAdmin();
     },
 
-    startJourney() {
-        this.state.journeyStep = 1;
-        this.state.journeyData = { mood: '', mission: null, activity: null, journal: null, oldMemoryDone: false };
-        
-        // Reset Inputs
-        if(document.getElementById('missionNotesJ')) document.getElementById('missionNotesJ').value = '';
-        if(document.getElementById('missionPhotoJ')) document.getElementById('missionPhotoJ').value = '';
-        if(document.getElementById('activityPhotoJ')) document.getElementById('activityPhotoJ').value = '';
-        
-        document.getElementById('journeySteps').classList.remove('hidden');
-        this.renderStep();
-    },
-
-    skipBreathe() {
-        if(this.state.breatheTimer) clearInterval(this.state.breatheTimer);
-        this.logAction('breathe', 'Breathing Skipped', 'Step 3 skipped by user');
-        document.getElementById('btnNext3').classList.remove('hidden');
-        alert("It's okay to skip! Take a deep breath whenever you are ready. ✨");
-    },
-
-    refreshTask(type) {
-        if(type === 'mission') {
-            const list = DATA.missions;
-            const current = document.getElementById('journeyMissionText').innerText;
-            let next = list[Math.floor(Math.random() * list.length)];
-            while(next === current) next = list[Math.floor(Math.random() * list.length)];
-            document.getElementById('journeyMissionText').innerText = next;
-        }
-        if(type === 'activity') {
-            const list = DATA.activities;
-            const current = document.getElementById('journeyActivityText').innerText;
-            let next = list[Math.floor(Math.random() * list.length)];
-            while(next === current) next = list[Math.floor(Math.random() * list.length)];
-            document.getElementById('journeyActivityText').innerText = next;
-        }
-    },
-
-    downloadImage(base64, filename) {
-        const a = document.createElement('a');
-        a.href = base64;
-        a.download = filename || 'bloom_image.png';
-        a.click();
-    },
-
     async renderAdmin() {
         const p = await db.getProfile();
         const logs = await db.get('activityLog');
@@ -699,7 +639,6 @@ const app = {
                 dayDiv.className = 'glass-card admin-card';
                 dayDiv.style.borderLeft = '6px solid var(--blush-pink)';
                 
-                // Extract mission details from the first journey of the day if exists
                 const missionData = dayJourneys.length > 0 && dayJourneys[0].data.mission ? dayJourneys[0].data.mission : null;
                 const activityData = dayJourneys.length > 0 && dayJourneys[0].data.activity ? dayJourneys[0].data.activity : null;
 
@@ -752,7 +691,6 @@ const app = {
             if(Object.keys(groupedLogs).length === 0) reportList.innerHTML = '<p>No activity recorded yet.</p>';
         }
 
-        // Logs
         const tbodyL = document.querySelector('#adminLogTable tbody');
         if(tbodyL) {
             tbodyL.innerHTML = logs.map(l => `
@@ -760,7 +698,6 @@ const app = {
             `).join('');
         }
 
-        // Journals (Extracted from Daily Journeys)
         const tbodyJ = document.querySelector('#adminJournalTable tbody');
         if(tbodyJ) {
             const journalsList = journeys.filter(j => j.data && j.data.journal).map(j => ({
@@ -781,7 +718,6 @@ const app = {
             `).join('');
         }
 
-        // Memories
         const grid = document.getElementById('adminMemoriesGrid');
         if(grid) {
             grid.innerHTML = '';
@@ -810,47 +746,14 @@ const app = {
         }
     },
 
-    exportData() {
-        const data = {
-            profile: db.getProfile(),
-            journals: db.get('journals'),
-            memories: db.get('memories'),
-            dailyJourneys: db.get('dailyJourneys'),
-            activityLog: db.get('activityLog'),
-            blessings: db.get('blessings'),
-            affirmations: db.get('affirmations')
-        };
-        const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
-        const url = URL.createObjectURL(blob);
+    downloadImage(base64, filename) {
         const a = document.createElement('a');
-        a.href = url; a.download = `ayesha_bloom_backup_${new Date().getTime()}.json`; a.click();
-    },
-
-    resetFullUser() {
-        if(confirm("Are you sure? This will delete EVERYTHING (Memories, Journals, Stats). The user will get a completely fresh start.")) {
-            db.clear();
-            alert("Database Wiped! User will have a fresh start next time they log in.");
-            window.location.reload();
-        }
-    },
-
-    resetUserStats() {
-        if(confirm("Are you sure? This will reset Points, Level, and Streak but KEEP Memories and Journals.")) {
-            const p = db.getProfile();
-            p.points = 0;
-            p.xp = 0;
-            p.level = 1;
-            p.streak = 0;
-            p.lastJourneyDate = null;
-            p.currentJourneyStep = 1;
-            db.setProfile(p);
-            alert("User stats reset! Interface will be fresh for stats.");
-            await this.renderAdmin();
-        }
+        a.href = base64; a.download = filename; a.click();
     },
 
     openModal(id) { document.getElementById(id).classList.remove('hidden'); },
     closeModal(id) { document.getElementById(id).classList.add('hidden'); },
+    
     async openRandomBlessing() {
         const b = await db.get('blessings');
         if(!b.length) return alert("Jar is empty!");
@@ -905,6 +808,29 @@ const app = {
                 await this.showScreen('welcomeScreen');
             }
         }, 1000);
+    },
+
+    async resetFullUser() {
+        if(confirm("Are you sure? This will delete EVERYTHING (Memories, Journals, Stats). The user will get a completely fresh start.")) {
+            await db.clear();
+            alert("Database Wiped! User will have a fresh start next time they log in.");
+            window.location.reload();
+        }
+    },
+
+    async resetUserStats() {
+        if(confirm("Are you sure? This will reset Points, Level, and Streak but KEEP Memories and Journals.")) {
+            const p = await db.getProfile();
+            p.points = 0;
+            p.xp = 0;
+            p.level = 1;
+            p.streak = 0;
+            p.lastJourneyDate = null;
+            p.currentJourneyStep = 1;
+            await db.setProfile(p);
+            alert("User stats reset! Interface will be fresh for stats.");
+            await this.renderAdmin();
+        }
     }
 };
 
