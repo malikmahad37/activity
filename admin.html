@@ -161,6 +161,16 @@
         </div>
     </div>
 
+    <!-- Full Screen Image Modal -->
+    <div id="imageViewerModal" class="image-modal hidden">
+        <span class="close-btn" onclick="app.closeImageModal()">&times;</span>
+        <div class="modal-content-wrapper">
+            <img class="modal-content" id="fullSizeImage">
+            <div id="imageCaption" style="color: white; margin-top: 15px; font-size: 1.2rem; text-align: center;"></div>
+            <a id="downloadImageBtn" class="primary button" style="margin-top: 20px; display: inline-block; padding: 10px 20px; text-decoration: none; border-radius: 20px;" download="everglow_memory.jpg">⬇️ Download Image</a>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
 </body>

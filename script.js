@@ -502,9 +502,9 @@ const app = {
                     const d = j.data || {};
                     
                     let imgsHtml = '';
-                    if(d.mission && d.mission.photo) imgsHtml += `<img src="${d.mission.photo}" style="width:100px; height:100px; object-fit:cover; border-radius:10px; border: 1px solid #eee;">`;
-                    if(d.activity && d.activity.photo) imgsHtml += `<img src="${d.activity.photo}" style="width:100px; height:100px; object-fit:cover; border-radius:10px; border: 1px solid #eee;">`;
-                    if(d.photo && d.photo.photo) imgsHtml += `<img src="${d.photo.photo}" style="width:100px; height:100px; object-fit:cover; border-radius:10px; border: 1px solid #eee;">`;
+                    if(d.mission && d.mission.photo) imgsHtml += `<img src="${d.mission.photo}" class="zoomable-img" onclick="app.openImageModal(this.src, 'Mission Photo - ${j.date}')" style="width:100px; height:100px; object-fit:cover; border-radius:10px; border: 1px solid #eee;">`;
+                    if(d.activity && d.activity.photo) imgsHtml += `<img src="${d.activity.photo}" class="zoomable-img" onclick="app.openImageModal(this.src, 'Activity Photo - ${j.date}')" style="width:100px; height:100px; object-fit:cover; border-radius:10px; border: 1px solid #eee;">`;
+                    if(d.photo && d.photo.photo) imgsHtml += `<img src="${d.photo.photo}" class="zoomable-img" onclick="app.openImageModal(this.src, '${d.photo.caption || 'Daily Photo'} - ${j.date}')" style="width:100px; height:100px; object-fit:cover; border-radius:10px; border: 1px solid #eee;">`;
 
                     return `<div class="daily-row" style="flex-direction: column; align-items: flex-start; gap: 10px;">
                         <div style="width: 100%; display: flex; justify-content: space-between;">
@@ -548,7 +548,7 @@ const app = {
                         <h4 style="margin:0 0 5px;">${m.title || 'Memory'}</h4>
                         <p style="font-size:0.8rem; margin:0 0 10px; color:gray;">${m.date || ''}</p>
                         <p style="font-size:0.9rem;">${m.description || ''}</p>
-                        ${m.images && m.images.length ? `<img src="${m.images[0]}" style="width:100%; border-radius:10px; margin-top:10px; border: 1px solid #eee;">` : ''}
+                        ${m.images && m.images.length ? `<img src="${m.images[0]}" class="zoomable-img" onclick="app.openImageModal(this.src, '${m.title}')" style="width:100%; border-radius:10px; margin-top:10px; border: 1px solid #eee;">` : ''}
                     </div>
                 `).join('');
             }
@@ -566,6 +566,26 @@ const app = {
         const formattedTabId = 'adminTab' + tabId.charAt(0).toUpperCase() + tabId.slice(1);
         const targetTab = document.getElementById(formattedTabId);
         if(targetTab) targetTab.classList.remove('hidden');
+    },
+
+    openImageModal(src, caption) {
+        const modal = document.getElementById('imageViewerModal');
+        const img = document.getElementById('fullSizeImage');
+        const cap = document.getElementById('imageCaption');
+        const downBtn = document.getElementById('downloadImageBtn');
+        
+        if (modal && img && downBtn) {
+            img.src = src;
+            if (cap) cap.innerText = caption || '';
+            downBtn.href = src;
+            downBtn.download = (caption ? caption.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'everglow_image') + '.png';
+            modal.classList.remove('hidden');
+        }
+    },
+
+    closeImageModal() {
+        const modal = document.getElementById('imageViewerModal');
+        if (modal) modal.classList.add('hidden');
     },
 
     async resetUserStats() {
