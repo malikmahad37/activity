@@ -107,34 +107,46 @@ const POINT_VALUES = {
 
 const DATA = {
     missions: [
-        "Take a photo of something that makes you smile.",
-        "Take a picture of a flower or a plant nearby.",
-        "Write 3 things you like about yourself.",
-        "Take 5 deep breaths.",
-        "Clean one small corner of your room and take a 'Before & After' photo.",
-        "Make dua for peace.",
-        "Spend 10 minutes away from overthinking.",
-        "Do one helpful thing at home and take a photo of it.",
-        "Write one future dream.",
-        "Drink water and relax for 5 minutes.",
-        "Take a photo of your favorite book or object.",
-        "Tell yourself 'I am proud of you'."
+        "Kisi aesi cheez ki tasweer lein jo apko smile karwaye.",
+        "Apne qareeb kisi phool ya poudhay ki tasweer lein.",
+        "Apne baray mein 3 achi batein likhein.",
+        "5 gehri saansein lein.",
+        "Apne kamray ka ek chota sa kona saaf karein aur uski 'Pehle aur Baad' ki tasweer lein.",
+        "Sukoon ke liye dua karein.",
+        "10 minute ke liye overthinking se door rahein.",
+        "Ghar par koi ek madadgaar kaam karein aur uski tasweer lein.",
+        "Mustaqbil ka ek khawab likhein.",
+        "Pani piyein aur 5 minute relax karein.",
+        "Apni pasandeeda kitaab ya cheez ki tasweer lein.",
+        "Khud se kahein 'Mujhe tum par fakhar hai'."
     ],
-    affirmations: ["Your past does not define your worth.", "You are healing, not broken.", "You deserve respect, peace, and kindness.", "One bad chapter is not your whole story.", "You are enough exactly as you are.", "You are growing in your own time."],
+    affirmations: [
+        "Aapka maazi aapki qadar tay nahi karta.", 
+        "Aap theek ho rahi hain, tooti hui nahi.", 
+        "Aap izzat, sukoon, aur narmi ki haqdar hain.", 
+        "Ek bura waqt aapki poori zindagi nahi hai.", 
+        "Aap jaisi hain, bilkul theek aur mukammal hain.", 
+        "Aap apne waqt ke mutabiq aage barh rahi hain."
+    ],
     activities: [
-        "Take a photo of the sky right now.", "Clean one small corner", "Drink a full glass of water",
-        "Take a picture of your favorite corner at home", "Make dua for someone else",
-        "Help someone at home", "Take a photo of your meal or a healthy snack",
-        "Sit in sunlight for 5 mins", "Write one dream on paper and take a photo of it"
+        "Is waqt asmaan ki tasweer lein.", 
+        "Ek chota kona saaf karein.", 
+        "Pura ek glass pani piyein.",
+        "Ghar mein apne pasandeeda konay ki tasweer lein.", 
+        "Kisi aur ke liye dua karein.",
+        "Ghar par kisi ki madad karein.", 
+        "Apne khane ya kisi healthy snack ki tasweer lein.",
+        "5 minute dhoop mein baithein.", 
+        "Kagaz par apna ek khawab likhein aur tasweer lein."
     ],
     quotes: {
-        'Sad': "It's okay to feel sad. Rain is needed for flowers to grow.",
-        'Lonely': "You are never alone; the Almighty is always with you.",
-        'Angry': "Take a breath. Let the fire cool. You are in control.",
-        'Confused': "Clarity will come in time. Trust the process.",
-        'Peaceful': "Alhamdulillah for this moment of calm.",
-        'Happy': "Your happiness is a beautiful light. Cherish it!",
-        'Grateful': "Gratitude is the key to abundance."
+        'Sad': "Udaas hona theek hai. Phool khilne ke liye barish zaroori hai.",
+        'Lonely': "Aap kabhi akele nahi hain; Khuda hamesha aapke sath hai.",
+        'Angry': "Lambi saans lein. Ghusse ko thanda hone dein. Aap control mein hain.",
+        'Confused': "Waqt ke sath sab saaf ho jayega. Hausla rakhein.",
+        'Peaceful': "Alhamdulillah is pur-sukoon lamhay ke liye.",
+        'Happy': "Aapki khushi ek khoobsurat roshni hai. Isay mehsoos karein!",
+        'Grateful': "Shukar guzari hi barkat ki chabi hai."
     }
 };
 

@@ -16,10 +16,10 @@
         <div id="authPanel" class="auth-wrapper">
             <div class="glass-card auth-card">
                 <div style="font-size: 3rem; margin-bottom: 10px;">🌸</div>
-                <h2>Welcome to Everglow Sanctuary</h2>
-                <p style="margin-bottom: 30px;">A peaceful place made only for you.</p>
-                <button id="btnAyeshaLogin" class="primary" style="width:100%; padding: 18px; font-size: 1.1rem; margin-bottom: 15px;">I am Ayesha</button>
-                <p style="margin-top: 20px; font-size: 0.8rem; color: var(--text-light);">Private Sanctuary 🔒</p>
+                <h2>Everglow Sanctuary mein khush amdeed</h2>
+                <p style="margin-bottom: 30px;">Ek pur-sukoon jagah sirf aapke liye.</p>
+                <button id="btnAyeshaLogin" class="primary" style="width:100%; padding: 18px; font-size: 1.1rem; margin-bottom: 15px;">Main Ayesha hoon</button>
+                <p style="margin-top: 20px; font-size: 0.8rem; color: var(--text-light);">Zati Sukoon ki Jagah 🔒</p>
             </div>
         </div>
 
@@ -34,13 +34,13 @@
                     </div>
                 </div>
                 <div class="nav-links">
-                    <button onclick="app.showScreen('welcomeScreen')" title="Home">Home 🏠</button>
-                    <button onclick="app.showScreen('dashboardScreen')" title="Dashboard">Progress 📈</button>
+                    <button onclick="app.showScreen('welcomeScreen')" title="Home">Ghar 🏠</button>
+                    <button onclick="app.showScreen('dashboardScreen')" title="Dashboard">Tarakki 📈</button>
                     <button onclick="app.showScreen('memoryBookScreen')" title="Memory Book">Yaadein 📔</button>
-                    <button onclick="app.showScreen('logScreen')" title="Log">Journal 📖</button>
-                    <button onclick="app.showScreen('timelineScreen')" title="Timeline">Timeline ⏳</button>
-                    <button class="danger" onclick="app.startCalmMode()" title="Breathe">Breathe 🌸</button>
-                    <button onclick="app.logout()" title="Logout">Lock 🔒</button>
+                    <button onclick="app.showScreen('logScreen')" title="Log">Diary 📖</button>
+                    <button onclick="app.showScreen('timelineScreen')" title="Timeline">Safar ⏳</button>
+                    <button class="danger" onclick="app.startCalmMode()" title="Breathe">Saans Lein 🌸</button>
+                    <button onclick="app.logout()" title="Logout">Band Karein 🔒</button>
                 </div>
             </header>
 
@@ -50,12 +50,12 @@
                     <div class="glass-card" style="text-align: center; padding: 60px 20px;">
                         <div style="font-size: 4rem; margin-bottom: 20px; animation: heartbeat 2s infinite ease-in-out;">🌸</div>
                         <h1 style="font-size: 2.8rem; margin-bottom: 10px; background: linear-gradient(135deg, var(--lavender-dark), var(--blush-pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Assalam-o-Alaikum, Ayesha</h1>
-                        <p style="font-size: 1.2rem; margin-bottom: 35px; color: var(--text-light);">This is your Everglow Sanctuary — a peaceful sanctuary made only for you. <br> <span style="font-style: italic; font-size: 0.9rem;">"Har mushkil ke baad asaani hai."</span></p>
+                        <p style="font-size: 1.2rem; margin-bottom: 35px; color: var(--text-light);">Ye aapka Everglow Sanctuary hai — ek pur-sukoon jagah jo sirf aapke liye banayi gayi hai. <br> <span style="font-style: italic; font-size: 0.9rem;">"Har mushkil ke baad asaani hai."</span></p>
                         <div style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
-                            <button class="primary" id="btnMainStartJourney" onclick="app.startJourney()" style="font-size: 1.2rem; padding: 18px 50px; width: fit-content;">Start Today's Journey ➔</button>
-                            <button class="primary hidden" id="btnMainContinueJourney" onclick="app.continueJourney()" style="font-size: 1.2rem; padding: 18px 50px; background: var(--sky-blue-dark); width: fit-content;">Continue Journey ➔</button>
+                            <button class="primary" id="btnMainStartJourney" onclick="app.startJourney()" style="font-size: 1.2rem; padding: 18px 50px; width: fit-content;">Aaj ka Safar Shuru Karein ➔</button>
+                            <button class="primary hidden" id="btnMainContinueJourney" onclick="app.continueJourney()" style="font-size: 1.2rem; padding: 18px 50px; background: var(--sky-blue-dark); width: fit-content;">Safar Jari Rakhein ➔</button>
                         </div>
-                        <p id="todayCompletedMsg" class="hidden" style="margin-top: 25px; font-weight: bold; color: var(--lavender-dark); background: rgba(122, 122, 255, 0.1); padding: 10px; border-radius: 15px;">Mashallah! You've already completed a journey today. Stay blessed! 🌸</p>
+                        <p id="todayCompletedMsg" class="hidden" style="margin-top: 25px; font-weight: bold; color: var(--lavender-dark); background: rgba(122, 122, 255, 0.1); padding: 10px; border-radius: 15px;">Mashallah! Aapne aaj ka safar mukammal kar liya hai. Khush rahein! 🌸</p>
                     </div>
                 </section>
 
@@ -65,125 +65,125 @@
                         <div id="journeyProgressBar" class="journey-progress-bar" style="width: 0%;"></div>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <p style="font-weight: bold; margin: 0;">Step <span id="currentStepNum">1</span> / 11</p>
-                        <button class="danger" style="padding: 5px 15px; font-size: 0.8rem;" onclick="app.showScreen('welcomeScreen')">Cancel Journey</button>
+                        <p style="font-weight: bold; margin: 0;">Kadam <span id="currentStepNum">1</span> / 11</p>
+                        <button class="danger" style="padding: 5px 15px; font-size: 0.8rem;" onclick="app.showScreen('welcomeScreen')">Safar Khatam Karein</button>
                     </div>
 
                     <div id="step1" class="journey-step glass-card">
-                        <h3>How are you feeling today?</h3>
+                        <h3>Aaj aap kaisa mehsoos kar rahi hain?</h3>
                         <div class="mood-grid" id="journeyMoodGrid">
-                            <button class="mood-btn" data-mood="Sad">😢 Sad</button>
-                            <button class="mood-btn" data-mood="Lonely">🥺 Lonely</button>
-                            <button class="mood-btn" data-mood="Angry">😠 Angry</button>
-                            <button class="mood-btn" data-mood="Confused">🤔 Confused</button>
-                            <button class="mood-btn" data-mood="Peaceful">😌 Peaceful</button>
-                            <button class="mood-btn" data-mood="Happy">😊 Happy</button>
-                            <button class="mood-btn" data-mood="Grateful">🙏 Grateful</button>
+                            <button class="mood-btn" data-mood="Sad">😢 Udaas</button>
+                            <button class="mood-btn" data-mood="Lonely">🥺 Akela</button>
+                            <button class="mood-btn" data-mood="Angry">😠 Ghussey mein</button>
+                            <button class="mood-btn" data-mood="Confused">🤔 Uljhan mein</button>
+                            <button class="mood-btn" data-mood="Peaceful">😌 Pur-sukoon</button>
+                            <button class="mood-btn" data-mood="Happy">😊 Khush</button>
+                            <button class="mood-btn" data-mood="Grateful">🙏 Shukar guzar</button>
                         </div>
-                        <div class="nav-btns"><span></span><button class="primary hidden" id="btnNext1" onclick="app.nextStep()">Next ➔</button></div>
+                        <div class="nav-btns"><span></span><button class="primary hidden" id="btnNext1" onclick="app.nextStep()">Aage ➔</button></div>
                     </div>
 
                     <div id="step2" class="journey-step glass-card hidden">
-                        <h3>A message for you...</h3>
+                        <h3>Aapke liye ek paigham...</h3>
                         <p id="journeyMoodMsg" style="font-size: 1.5rem; text-align: center; margin: 40px 0; font-style: italic;"></p>
-                        <div class="nav-btns"><button onclick="app.prevStep()">Back</button><button class="primary" onclick="app.nextStep()">Next ➔</button></div>
+                        <div class="nav-btns"><button onclick="app.prevStep()">Peechay</button><button class="primary" onclick="app.nextStep()">Aage ➔</button></div>
                     </div>
 
                     <div id="step3" class="journey-step glass-card hidden">
-                        <h3>Take a moment to breathe</h3>
-                        <div class="breathe-circle" id="journeyBreatheCircle">Inhale...</div>
+                        <h3>Ek lamha nikal kar saans lein</h3>
+                        <div class="breathe-circle" id="journeyBreatheCircle">Andar kheinchein...</div>
                         <p id="journeyBreatheTimer" style="text-align: center; font-size: 1.2rem;">60 seconds</p>
                         <div class="nav-btns">
-                            <button onclick="app.prevStep()">Back</button>
-                            <button class="secondary" onclick="app.skipBreathe()">Skip</button>
-                            <button class="primary hidden" id="btnNext3" onclick="app.nextStep()">Next ➔</button>
+                            <button onclick="app.prevStep()">Peechay</button>
+                            <button class="secondary" onclick="app.skipBreathe()">Chorrein</button>
+                            <button class="primary hidden" id="btnNext3" onclick="app.nextStep()">Aage ➔</button>
                         </div>
                     </div>
 
                     <div id="step4" class="journey-step glass-card hidden">
-                        <h3>Daily Healing Mission</h3>
+                        <h3>Aaj ka Healing Mission</h3>
                         <p id="journeyMissionText" style="font-size: 1.3rem; text-align: center; margin: 30px 0; font-weight: bold;"></p>
                         
                         <div id="missionInputArea" style="margin-bottom: 20px;">
-                            <textarea id="missionNotesJ" rows="3" placeholder="Write about your mission here... (Optional)"></textarea>
-                            <label style="display: block; margin: 10px 0 5px; font-size: 0.9rem;">Add a photo for this mission:</label>
+                            <textarea id="missionNotesJ" rows="3" placeholder="Apne mission ke baray mein likhein... (Zaroori nahi)"></textarea>
+                            <label style="display: block; margin: 10px 0 5px; font-size: 0.9rem;">Is mission ke liye ek tasweer add karein:</label>
                             <input type="file" id="missionPhotoJ" accept="image/*">
                         </div>
 
                         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                            <button class="primary" style="flex: 1;" onclick="app.completeStepAction('mission')">Complete Mission (+20 pts)</button>
-                            <button class="secondary" onclick="app.refreshTask('mission')">🔄 Change Task</button>
+                            <button class="primary" style="flex: 1;" onclick="app.completeStepAction('mission')">Mission Mukammal Karein (+20 pts)</button>
+                            <button class="secondary" onclick="app.refreshTask('mission')">🔄 Kaam Badlein</button>
                         </div>
-                        <div class="nav-btns"><button onclick="app.prevStep()">Back</button><button class="primary hidden" id="btnNext4" onclick="app.nextStep()">Next ➔</button></div>
+                        <div class="nav-btns"><button onclick="app.prevStep()">Peechay</button><button class="primary hidden" id="btnNext4" onclick="app.nextStep()">Aage ➔</button></div>
                     </div>
 
                     <div id="step5" class="journey-step glass-card hidden">
-                        <h3>Daily Journal</h3>
-                        <input type="text" id="jFeelingJ" placeholder="What are you feeling today?">
-                        <textarea id="jReasonJ" rows="3" placeholder="What made you feel this way?"></textarea>
-                        <input type="text" id="jGratitudeJ" placeholder="One thing you are grateful for...">
-                        <input type="text" id="jImproveJ" placeholder="One thing you want to improve...">
-                        <button class="primary" style="width: 100%;" onclick="app.completeStepAction('journal')">Save Journal (+15 pts)</button>
-                        <div class="nav-btns"><button onclick="app.prevStep()">Back</button><button class="primary hidden" id="btnNext5" onclick="app.nextStep()">Next ➔</button></div>
+                        <h3>Rozana ki Diary</h3>
+                        <input type="text" id="jFeelingJ" placeholder="Aaj aap kya mehsoos kar rahi hain?">
+                        <textarea id="jReasonJ" rows="3" placeholder="Kis wajah se aap aesa mehsoos kar rahi hain?"></textarea>
+                        <input type="text" id="jGratitudeJ" placeholder="Ek cheez jiski aap shukar guzar hain...">
+                        <input type="text" id="jImproveJ" placeholder="Ek cheez jo aap behtar karna chahti hain...">
+                        <button class="primary" style="width: 100%;" onclick="app.completeStepAction('journal')">Diary Save Karein (+15 pts)</button>
+                        <div class="nav-btns"><button onclick="app.prevStep()">Peechay</button><button class="primary hidden" id="btnNext5" onclick="app.nextStep()">Aage ➔</button></div>
                     </div>
 
                     <div id="step6" class="journey-step glass-card hidden">
-                        <h3>Daily Photo</h3>
+                        <h3>Aaj ki Tasweer</h3>
                         <input type="file" id="imgUploadJ" accept="image/*">
-                        <input type="text" id="imgCaptionJ" placeholder="Caption for today...">
-                        <button class="primary" style="width: 100%;" onclick="app.completeStepAction('photo')">Upload Photo (+10 pts)</button>
-                        <div class="nav-btns"><button onclick="app.prevStep()">Back</button><button class="primary" onclick="app.nextStep()">Next ➔</button></div>
+                        <input type="text" id="imgCaptionJ" placeholder="Aaj ki tasweer ka unwan...">
+                        <button class="primary" style="width: 100%;" onclick="app.completeStepAction('photo')">Tasweer Upload Karein (+10 pts)</button>
+                        <div class="nav-btns"><button onclick="app.prevStep()">Peechay</button><button class="primary" onclick="app.nextStep()">Aage ➔</button></div>
                     </div>
 
                     <div id="step7" class="journey-step glass-card hidden">
-                        <h3>Self-Worth Affirmation</h3>
+                        <h3>Apni Qadar (Affirmation)</h3>
                         <p id="journeyAffirmationText" style="font-size: 1.4rem; text-align: center; margin: 40px 0;"></p>
-                        <button class="primary" style="width: 100%;" onclick="app.completeStepAction('affirmation')">I believe this today (+5 pts)</button>
-                        <div class="nav-btns"><button onclick="app.prevStep()">Back</button><button class="primary hidden" id="btnNext7" onclick="app.nextStep()">Next ➔</button></div>
+                        <button class="primary" style="width: 100%;" onclick="app.completeStepAction('affirmation')">Mera aaj is par yaqeen hai (+5 pts)</button>
+                        <div class="nav-btns"><button onclick="app.prevStep()">Peechay</button><button class="primary hidden" id="btnNext7" onclick="app.nextStep()">Aage ➔</button></div>
                     </div>
 
                     <div id="step8" class="journey-step glass-card hidden">
-                        <h3>Blessing Jar</h3>
-                        <input type="text" id="blessingJ" placeholder="Add a blessing to your jar...">
-                        <button class="primary" style="width: 100%;" onclick="app.completeStepAction('blessing')">Add to Jar (+10 pts)</button>
-                        <div class="nav-btns"><button onclick="app.prevStep()">Back</button><button class="primary hidden" id="btnNext8" onclick="app.nextStep()">Next ➔</button></div>
+                        <h3>Barkaton ka Jar</h3>
+                        <input type="text" id="blessingJ" placeholder="Apne jar mein koi nemat add karein...">
+                        <button class="primary" style="width: 100%;" onclick="app.completeStepAction('blessing')">Jar mein Shamil Karein (+10 pts)</button>
+                        <div class="nav-btns"><button onclick="app.prevStep()">Peechay</button><button class="primary hidden" id="btnNext8" onclick="app.nextStep()">Aage ➔</button></div>
                     </div>
 
                     <div id="step9" class="journey-step glass-card hidden">
-                        <h3>Small Activity</h3>
+                        <h3>Choti si Activity</h3>
                         <p id="journeyActivityText" style="font-size: 1.3rem; text-align: center; margin: 30px 0;"></p>
                         
                         <div id="activityInputArea" style="margin-bottom: 20px;">
-                            <label style="display: block; margin: 10px 0 5px; font-size: 0.9rem;">Upload a photo of this activity:</label>
+                            <label style="display: block; margin: 10px 0 5px; font-size: 0.9rem;">Is activity ki tasweer upload karein:</label>
                             <input type="file" id="activityPhotoJ" accept="image/*">
                         </div>
 
                         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                            <button class="primary" style="flex: 1;" onclick="app.completeStepAction('activity')">Task Done (+10 pts)</button>
-                            <button class="secondary" onclick="app.refreshTask('activity')">🔄 Change Task</button>
+                            <button class="primary" style="flex: 1;" onclick="app.completeStepAction('activity')">Kaam Mukammal (+10 pts)</button>
+                            <button class="secondary" onclick="app.refreshTask('activity')">🔄 Kaam Badlein</button>
                         </div>
-                        <div class="nav-btns"><button onclick="app.prevStep()">Back</button><button class="primary hidden" id="btnNext9" onclick="app.nextStep()">Next ➔</button></div>
+                        <div class="nav-btns"><button onclick="app.prevStep()">Peechay</button><button class="primary hidden" id="btnNext9" onclick="app.nextStep()">Aage ➔</button></div>
                     </div>
 
                     <!-- Step 10: Write Old Memory (Optional but encouraged) -->
                     <div id="step10" class="journey-step glass-card hidden">
                         <h3>Purani Achi Yaadein 📔</h3>
                         <p style="margin-bottom: 15px;">Apni koi purani achi yaad likhein jo apko smile karwa sakti ho.</p>
-                        <input type="text" id="omTitleJ" placeholder="Memory Title">
-                        <textarea id="omDescJ" rows="3" placeholder="Describe that happy moment..."></textarea>
-                        <textarea id="omSpecialJ" rows="2" placeholder="Why does this make you happy?"></textarea>
+                        <input type="text" id="omTitleJ" placeholder="Yaad ka Unwan">
+                        <textarea id="omDescJ" rows="3" placeholder="Us khushi ke lamhay ko bayan karein..."></textarea>
+                        <textarea id="omSpecialJ" rows="2" placeholder="Ye aapko khushi kyun deta hai?"></textarea>
                         <input type="file" id="omImageJ" accept="image/*" multiple onchange="app.previewImages(event, 'mPreviewJ')">
                         <div id="mPreviewJ" class="preview-container"></div>
-                        <button class="primary" style="width: 100%;" onclick="app.completeStepAction('oldMemory')">Save Old Memory (+20 pts)</button>
-                        <div class="nav-btns"><button onclick="app.prevStep()">Back</button><button class="primary" id="btnNext10" onclick="app.nextStep()">Next ➔</button></div>
+                        <button class="primary" style="width: 100%;" onclick="app.completeStepAction('oldMemory')">Purani Yaad Save Karein (+20 pts)</button>
+                        <div class="nav-btns"><button onclick="app.prevStep()">Peechay</button><button class="primary" id="btnNext10" onclick="app.nextStep()">Aage ➔</button></div>
                     </div>
 
                     <!-- Step 11: Completion Screen -->
                     <div id="step11" class="journey-step glass-card hidden" style="text-align: center;">
                         <div style="font-size: 4rem;">✨</div>
-                        <h2>Today's Healing Journey Complete!</h2>
-                        <p style="margin: 20px 0;">You earned 50 bonus points for finishing all steps!</p>
-                        <button class="primary" style="width: 100%;" onclick="app.finishJourney()">Return to Dashboard</button>
+                        <h2>Aaj ka Healing Safar Mukammal!</h2>
+                        <p style="margin: 20px 0;">Aapne sab kadam poore karne par 50 bonus points jeetay!</p>
+                        <button class="primary" style="width: 100%;" onclick="app.finishJourney()">Dashboard par Wapis Jayein</button>
                     </div>
                 </section>
 
@@ -196,28 +196,28 @@
                             <h3 id="dashLevel">1</h3>
                             <div class="progress-container"><div id="uiXpBar" class="progress-bar"></div></div>
                         </div>
-                        <div class="glass-card stat-card"><p>Total Points</p><h3 id="dashPoints">0</h3></div>
-                        <div class="glass-card stat-card"><p>Today's Points</p><h3 id="dashTodayPoints">0</h3></div>
+                        <div class="glass-card stat-card"><p>Kul Points</p><h3 id="dashPoints">0</h3></div>
+                        <div class="glass-card stat-card"><p>Aaj ke Points</p><h3 id="dashTodayPoints">0</h3></div>
                         <div class="glass-card stat-card"><p>Streak</p><h3 id="dashStreak">0</h3></div>
                     </div>
                     <div class="dashboard-grid" style="margin-top: 20px;">
                         <div class="glass-card">
-                            <h3>Recent Activity</h3>
+                            <h3>Haliya Sargarmi</h3>
                             <div id="dashRecentLog" style="margin-top: 10px;"></div>
                         </div>
                         <div class="glass-card">
-                            <h3>Highlights</h3>
-                            <p>Latest Memory: <strong id="dashLatestMemory">None</strong></p>
-                            <button class="primary" style="width: 100%; margin-top: 15px;" onclick="app.showScreen('memoryBookScreen')">View Memory Book</button>
+                            <h3>Khas Batein</h3>
+                            <p>Taza Tareen Yaad: <strong id="dashLatestMemory">Koi nahi</strong></p>
+                            <button class="primary" style="width: 100%; margin-top: 15px;" onclick="app.showScreen('memoryBookScreen')">Memory Book Dekhein</button>
                         </div>
                     </div>
                 </section>
 
                 <!-- Log Screen -->
                 <section id="logScreen" class="screen hidden">
-                    <h2 style="margin-bottom: 20px;">My Progress Log</h2>
+                    <h2 style="margin-bottom: 20px;">Meri Tarakki ki Diary</h2>
                     <div class="glass-card">
-                        <p>Total Actions Logged: <strong id="totalActions">0</strong></p>
+                        <p>Kul Darj Shuda Kaam: <strong id="totalActions">0</strong></p>
                         <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
                         <div id="fullLogList"></div>
                     </div>
@@ -227,26 +227,26 @@
                 <section id="memoryBookScreen" class="screen hidden">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h2>Memory Book & Scrapbook</h2>
-                        <button class="primary" onclick="app.openModal('memoryModal')">Add Old Yaad</button>
+                        <button class="primary" onclick="app.openModal('memoryModal')">Purani Yaad Likhein</button>
                     </div>
-                    <button class="primary" style="width: 100%; margin-bottom: 30px; background: var(--lavender-dark);" onclick="app.openRandomMemory()">Open a Happy Memory 🌸</button>
+                    <button class="primary" style="width: 100%; margin-bottom: 30px; background: var(--lavender-dark);" onclick="app.openRandomMemory()">Koi Khushgawar Yaad Kholein 🌸</button>
                     <div id="memoryBookGrid" class="dashboard-grid"></div>
                 </section>
 
                 <!-- Timeline Screen -->
                 <section id="timelineScreen" class="screen hidden">
-                    <h2 style="margin-bottom: 20px;">Full Timeline</h2>
+                    <h2 style="margin-bottom: 20px;">Mera Safar (Timeline)</h2>
                     <div class="timeline" id="timelineContainer"></div>
                 </section>
 
                 <!-- Calm Mode Screen -->
                 <section id="calmModeScreen" class="screen hidden">
                     <div class="glass-card" style="text-align: center; padding: 60px 20px; border-top: 6px solid var(--sky-blue);">
-                        <h2 style="color: var(--sky-blue-dark);">Sokoon Mode (Calm) 🌊</h2>
-                        <p style="font-size: 1.1rem;">Take a moment to center yourself. Deep breath in, deep breath out.</p>
-                        <div class="breathe-circle" id="calmBreatheCircle">Inhale...</div>
+                        <h2 style="color: var(--sky-blue-dark);">Sokoon Mode 🌊</h2>
+                        <p style="font-size: 1.1rem;">Ek lamha apne aap ko dein. Lambi saans andar kheinchein, phir bahar nikalen.</p>
+                        <div class="breathe-circle" id="calmBreatheCircle">Andar kheinchein...</div>
                         <p id="calmBreatheTimer" style="font-size: 1.8rem; font-weight: bold; margin: 25px 0; color: var(--lavender-dark);">60 seconds</p>
-                        <button class="secondary" style="padding: 12px 40px; font-size: 1.1rem;" onclick="app.showScreen('welcomeScreen')">I feel better now ✨</button>
+                        <button class="secondary" style="padding: 12px 40px; font-size: 1.1rem;" onclick="app.showScreen('welcomeScreen')">Ab main behtar mehsoos kar rahi hoon ✨</button>
                     </div>
                 </section>
 
