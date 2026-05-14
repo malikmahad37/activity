@@ -1,6 +1,7 @@
 // Global Error Handler for Debugging
 window.onerror = function(msg, url, lineNo, columnNo, error) {
-    alert('Error: ' + msg + '\nScript: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nStackTrace: ' + (error ? error.stack : 'No stack available'));
+    console.error('Global Error:', msg, url, lineNo, error);
+    alert('Error: ' + msg + '\nLine: ' + lineNo);
     return false;
 };
 
@@ -11,7 +12,12 @@ const SUPABASE_KEY = 'sb_publishable_pPcJqEpi7E6sigaCeV2JSQ_huoT_MRL';
 let _supabase = null;
 function getClient() {
     if (!_supabase && window.supabase) {
-        _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        try {
+            _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            console.log("Supabase client initialized successfully.");
+        } catch(e) {
+            console.error("Failed to create Supabase client:", e);
+        }
     }
     return _supabase;
 }
@@ -37,25 +43,34 @@ class SupabaseDB {
             console.error("Supabase client not initialized.");
             return null;
         }
-        const { data, error } = await client.from('profiles').select('*').eq('id', 'ayesha').single();
-        if (error || !data) {
-            const def = { 
-                id: 'ayesha',
-                xp: 0, 
-                points: 0,
-                level: 1, 
-                streak: 0, 
-                lastLogin: null, 
-                lastJourneyDate: null, 
-                currentJourneyStep: 1, 
-                journeyData: {} 
-            };
-            if (error && error.code === 'PGRST116') { // Not found
-                await client.from('profiles').insert([def]);
+        console.log("Requesting profile for ayesha...");
+        try {
+            const { data, error } = await client.from('profiles').select('*').eq('id', 'ayesha').single();
+            if (error) {
+                console.warn("Profile fetch error/missing:", error);
+                const def = { 
+                    id: 'ayesha',
+                    xp: 0, 
+                    points: 0,
+                    level: 1, 
+                    streak: 0, 
+                    lastLogin: null, 
+                    lastJourneyDate: null, 
+                    currentJourneyStep: 1, 
+                    journeyData: {} 
+                };
+                if (error.code === 'PGRST116' || error.message.includes('JSON')) { 
+                    console.log("Creating fresh profile for ayesha...");
+                    await client.from('profiles').insert([def]);
+                    return def;
+                }
+                return def;
             }
-            return def;
+            return data;
+        } catch(e) {
+            console.error("Exception in getProfile:", e);
+            return null;
         }
-        return data;
     }
     async setProfile(p) {
         const client = getClient();
@@ -68,7 +83,7 @@ class SupabaseDB {
         if (!client) return;
         const tables = ['activityLog', 'memories', 'blessings', 'dailyJourneys'];
         for (const t of tables) {
-            await client.from(t).delete().neq('id', '0'); // Delete all rows
+            await client.from(t).delete().neq('id', '0'); 
         }
         await this.setProfile({ 
             xp: 0, points: 0, level: 1, streak: 0, 
@@ -140,14 +155,19 @@ const app = {
     },
 
     async init() {
+        console.log("App init started...");
         this.checkAuth();
         this.setupEventListeners();
         await this.updateMainScreenState();
+        console.log("App init finished.");
     },
 
     setupEventListeners() {
         const btnAyesha = document.getElementById('btnAyeshaLogin');
-        if(btnAyesha) btnAyesha.onclick = () => this.login('ayesha');
+        if(btnAyesha) btnAyesha.onclick = () => {
+            console.log("Login button clicked for Ayesha");
+            this.login('ayesha');
+        };
         
         const btnAdmin = document.getElementById('btnAdminLogin');
         if(btnAdmin) btnAdmin.onclick = () => {
@@ -160,7 +180,6 @@ const app = {
         const btnLogout = document.getElementById('btnLogout');
         if(btnLogout) btnLogout.onclick = () => this.logout();
 
-        // Journey Mood Selection
         const moodBtns = document.querySelectorAll('#journeyMoodGrid .mood-btn');
         moodBtns.forEach(btn => {
             btn.addEventListener('click', async (e) => {
@@ -177,16 +196,22 @@ const app = {
 
     checkAuth() {
         const session = sessionStorage.getItem('bloom_session');
-        if(session) this.login(session);
-        else this.showPanel('authPanel');
+        if(session) {
+            console.log("Session found:", session);
+            this.login(session);
+        } else {
+            this.showPanel('authPanel');
+        }
     },
 
     async login(role) {
+        console.log("Logging in as:", role);
         this.state.currentUser = role;
         sessionStorage.setItem('bloom_session', role);
         if(role === 'ayesha') {
             this.showPanel('userPanel');
             this.showScreen('welcomeScreen');
+            console.log("Panel and Screen shown, updating stats...");
             await this.updateStats();
         } else {
             this.showPanel('adminPanel');
@@ -203,6 +228,7 @@ const app = {
         document.querySelectorAll('.auth-wrapper, #userPanel, #adminPanel').forEach(p => p.classList.add('hidden'));
         const target = document.getElementById(id);
         if(target) target.classList.remove('hidden');
+        else console.error("Panel not found:", id);
     },
 
     async showScreen(id) {
@@ -216,9 +242,9 @@ const app = {
         if(id === 'logScreen') await this.renderLog();
     },
 
-    // Points & Log System
     async addPoints(pts) {
         const p = await db.getProfile();
+        if(!p) return;
         p.points += pts;
         p.xp += pts;
         if(p.xp >= p.level * 200) {
@@ -242,9 +268,9 @@ const app = {
         await db.insert('activityLog', entry);
     },
 
-    // Journey Flow (11 Steps)
     async updateMainScreenState() {
         const p = await db.getProfile();
+        if(!p) return;
         const today = new Date().toDateString();
         const btnStart = document.getElementById('btnMainStartJourney');
         const btnCont = document.getElementById('btnMainContinueJourney');
@@ -273,6 +299,7 @@ const app = {
 
     async startJourney() {
         const p = await db.getProfile();
+        if(!p) return;
         p.currentJourneyStep = 1;
         p.journeyData = {};
         await db.setProfile(p);
@@ -284,6 +311,7 @@ const app = {
 
     async continueJourney() {
         const p = await db.getProfile();
+        if(!p) return;
         this.state.journeyStep = p.currentJourneyStep;
         this.state.journeyData = p.journeyData;
         await this.showScreen('journeyScreen');
@@ -296,27 +324,27 @@ const app = {
         const currentStepEl = document.getElementById(`step${s}`);
         if(currentStepEl) currentStepEl.classList.remove('hidden');
         
-        document.getElementById('journeyTitle').innerText = `Step ${s}: ${this.getStepTitle(s)}`;
-        document.getElementById('journeyProgress').style.width = `${(s / 11) * 100}%`;
+        const titleEl = document.getElementById('journeyTitle');
+        if(titleEl) titleEl.innerText = `Step ${s}: ${this.getStepTitle(s)}`;
+        
+        const progEl = document.getElementById('journeyProgress');
+        if(progEl) progEl.style.width = `${(s / 11) * 100}%`;
 
-        if(s === 1) {
-            // Mood selection logic handled in setupEventListeners
-        }
         if(s === 2) {
             const mood = this.state.journeyData.mood;
-            document.getElementById('journeyQuote').innerText = DATA.quotes[mood] || "Believe in yourself.";
+            const quoteEl = document.getElementById('journeyQuote');
+            if(quoteEl) quoteEl.innerText = DATA.quotes[mood] || "Believe in yourself.";
         }
-        if(s === 3) {
-            // Breathing exercise
-            this.startBreatheExercise();
-        }
+        if(s === 3) this.startBreatheExercise();
         if(s === 4) {
             const m = DATA.missions[Math.floor(Math.random() * DATA.missions.length)];
-            document.getElementById('journeyMissionText').innerText = m;
+            const misEl = document.getElementById('journeyMissionText');
+            if(misEl) misEl.innerText = m;
         }
         if(s === 9) {
             const a = DATA.activities[Math.floor(Math.random() * DATA.activities.length)];
-            document.getElementById('journeyActivityText').innerText = a;
+            const actEl = document.getElementById('journeyActivityText');
+            if(actEl) actEl.innerText = a;
         }
         
         this.checkStepCompletionUI();
@@ -330,20 +358,21 @@ const app = {
     checkStepCompletionUI() {
         const s = this.state.journeyStep;
         const d = this.state.journeyData;
-        if(s === 1 && d.mood) document.getElementById('btnNext1').classList.remove('hidden');
-        if(s === 4 && d.missionCompleted) document.getElementById('btnNext4').classList.remove('hidden');
-        if(s === 5 && d.journal) document.getElementById('btnNext5').classList.remove('hidden');
-        if(s === 6 && d.photo) document.getElementById('btnNext6').classList.remove('hidden');
-        if(s === 7 && d.affirmationDone) document.getElementById('btnNext7').classList.remove('hidden');
-        if(s === 8 && d.blessing) document.getElementById('btnNext8').classList.remove('hidden');
-        if(s === 9 && d.activityDone) document.getElementById('btnNext9').classList.remove('hidden');
-        if(s === 10 && d.oldMemoryDone) document.getElementById('btnNext10').classList.remove('hidden');
+        if(s === 1 && d.mood) document.getElementById('btnNext1')?.classList.remove('hidden');
+        if(s === 4 && d.missionCompleted) document.getElementById('btnNext4')?.classList.remove('hidden');
+        if(s === 5 && d.journal) document.getElementById('btnNext5')?.classList.remove('hidden');
+        if(s === 6 && d.photo) document.getElementById('btnNext6')?.classList.remove('hidden');
+        if(s === 7 && d.affirmationDone) document.getElementById('btnNext7')?.classList.remove('hidden');
+        if(s === 8 && d.blessing) document.getElementById('btnNext8')?.classList.remove('hidden');
+        if(s === 9 && d.activityDone) document.getElementById('btnNext9')?.classList.remove('hidden');
+        if(s === 10 && d.oldMemoryDone) document.getElementById('btnNext10')?.classList.remove('hidden');
     },
 
     async nextStep() {
         if(this.state.journeyStep < 11) {
             this.state.journeyStep++;
             const p = await db.getProfile();
+            if(!p) return;
             p.currentJourneyStep = this.state.journeyStep;
             p.journeyData = this.state.journeyData;
             await db.setProfile(p);
@@ -364,15 +393,11 @@ const app = {
             const missionText = document.getElementById('journeyMissionText').innerText;
 
             const finalizeMission = async (photoBase64 = null) => {
-                this.state.journeyData.mission = {
-                    text: missionText,
-                    notes: notes,
-                    photo: photoBase64
-                };
+                this.state.journeyData.mission = { text: missionText, notes: notes, photo: photoBase64 };
                 this.state.journeyData.missionCompleted = true;
                 await this.logAction('mission', 'Daily Mission Completed', `Task: ${missionText}`);
                 await this.addPoints(POINT_VALUES.mission);
-                document.getElementById('btnNext4').classList.remove('hidden');
+                document.getElementById('btnNext4')?.classList.remove('hidden');
                 alert("Mission details saved! ✨");
             };
 
@@ -380,9 +405,7 @@ const app = {
                 const reader = new FileReader();
                 reader.onload = async (e) => await finalizeMission(e.target.result);
                 reader.readAsDataURL(file);
-            } else {
-                await finalizeMission();
-            }
+            } else await finalizeMission();
         }
         if(type === 'journal') {
             this.state.journeyData.journal = {
@@ -393,7 +416,7 @@ const app = {
             };
             await this.logAction('journal', 'Journal Saved', 'Step 5 complete');
             await this.addPoints(POINT_VALUES.journal);
-            document.getElementById('btnNext5').classList.remove('hidden');
+            document.getElementById('btnNext5')?.classList.remove('hidden');
         }
         if(type === 'photo') {
             const file = document.getElementById('imgUploadJ').files[0];
@@ -412,7 +435,7 @@ const app = {
             this.state.journeyData.affirmationDone = true;
             await this.logAction('affirmation', 'Affirmation Completed', 'Step 7 complete');
             await this.addPoints(POINT_VALUES.affirmation);
-            document.getElementById('btnNext7').classList.remove('hidden');
+            document.getElementById('btnNext7')?.classList.remove('hidden');
         }
         if(type === 'blessing') {
             const b = document.getElementById('blessingJ').value;
@@ -421,22 +444,18 @@ const app = {
             await this.logAction('blessing', 'Blessing Added', 'Step 8 complete');
             await this.addPoints(POINT_VALUES.blessing);
             await db.insert('blessings', { text: b });
-            document.getElementById('btnNext8').classList.remove('hidden');
+            document.getElementById('btnNext8')?.classList.remove('hidden');
         }
         if(type === 'activity') {
             const file = document.getElementById('activityPhotoJ').files[0];
             const activityText = document.getElementById('journeyActivityText').innerText;
 
             const finalizeActivity = async (photoBase64 = null) => {
-                this.state.journeyData.activity = {
-                    text: activityText,
-                    photo: photoBase64
-                };
+                this.state.journeyData.activity = { text: activityText, photo: photoBase64 };
                 this.state.journeyData.activityDone = true;
                 await this.logAction('activity', 'Activity Completed', `Task: ${activityText}`);
-                await this.addPoints(POINT_VALUES.breathe); // Activity points
-                const nextBtn = document.getElementById('btnNext9');
-                if(nextBtn) nextBtn.classList.remove('hidden');
+                await this.addPoints(POINT_VALUES.breathe);
+                document.getElementById('btnNext9')?.classList.remove('hidden');
                 alert("Activity saved! ✨");
             };
 
@@ -444,9 +463,7 @@ const app = {
                 const reader = new FileReader();
                 reader.onload = async (e) => await finalizeActivity(e.target.result);
                 reader.readAsDataURL(file);
-            } else {
-                await finalizeActivity();
-            }
+            } else await finalizeActivity();
         }
         if(type === 'oldMemory') {
             const m = {
@@ -461,7 +478,7 @@ const app = {
             this.state.journeyData.oldMemoryDone = true;
             await this.logAction('old_memory', 'Old Memory Added', `Step 10: ${m.title}`);
             await this.addPoints(POINT_VALUES.old_memory);
-            document.getElementById('btnNext10').classList.remove('hidden');
+            document.getElementById('btnNext10')?.classList.remove('hidden');
             this.state.tempImagesJ = [];
         }
     },
@@ -473,39 +490,32 @@ const app = {
         if(this.state.breatheTimer) clearInterval(this.state.breatheTimer);
         this.state.breatheTimer = setInterval(async () => {
             sec--;
-            text.innerText = `${sec} seconds`;
-            circle.innerText = sec % 8 < 4 ? "Inhale..." : "Exhale...";
+            if(text) text.innerText = `${sec} seconds`;
+            if(circle) circle.innerText = sec % 8 < 4 ? "Inhale..." : "Exhale...";
             if(sec <= 0) {
                 clearInterval(this.state.breatheTimer);
                 await this.logAction('breathe', 'Breathing Completed', 'Step 3 complete');
                 await this.addPoints(POINT_VALUES.breathe);
-                document.getElementById('btnNext3').classList.remove('hidden');
+                document.getElementById('btnNext3')?.classList.remove('hidden');
             }
         }, 1000);
     },
 
     async finishJourney() {
         const p = await db.getProfile();
+        if(!p) return;
         const today = new Date().toDateString();
-        
-        // Only increment streak once per day
-        if(p.lastJourneyDate !== today) {
-            p.streak++;
-        }
-        
+        if(p.lastJourneyDate !== today) p.streak++;
         p.lastJourneyDate = today;
         p.currentJourneyStep = 1;
         await db.setProfile(p);
-
         await this.addPoints(POINT_VALUES.journey_complete);
         await this.logAction('journey_complete', 'Daily Journey Completed', 'Full 11 steps finished');
         await db.insert('dailyJourneys', { date: p.lastJourneyDate, data: this.state.journeyData });
-        
         await this.showScreen('welcomeScreen');
         await this.updateMainScreenState();
     },
 
-    // Memories
     handleImageSelection(id, context = 'memory') {
         const files = document.getElementById(id).files;
         const imgList = [];
@@ -539,6 +549,7 @@ const app = {
 
     async renderMemoryBook() {
         const grid = document.getElementById('memoryBookGrid');
+        if(!grid) return;
         grid.innerHTML = '';
         const memories = await db.get('memories');
         memories.reverse().forEach(m => {
@@ -561,7 +572,8 @@ const app = {
         const list = await db.get('memories');
         if(!list.length) return alert("No memories yet!");
         const m = list[Math.floor(Math.random() * list.length)];
-        document.getElementById('randomMemoryContent').innerHTML = `
+        const cont = document.getElementById('randomMemoryContent');
+        if(cont) cont.innerHTML = `
             ${m.images[0] ? `<img src="${m.images[0]}" style="width:100%; border-radius:10px;">` : ''}
             <h2 style="margin-top:15px;">${m.title}</h2>
             <p>${m.description}</p>
@@ -570,21 +582,22 @@ const app = {
         this.openModal('randomMemoryModal');
     },
 
-    // Dashboards
     async updateStats() {
         const p = await db.getProfile();
         if(!p) return;
-        ['uiLevel', 'dashLevel'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerText = p.level; });
-        ['uiStreak', 'dashStreak'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerText = p.streak; });
-        ['uiPoints', 'dashPoints'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerText = p.points; });
+        ['uiLevel', 'dashLevel', 'adminLevel'].forEach(id => { const el = document.getElementById(id); if(el) el.innerText = p.level; });
+        ['uiStreak', 'dashStreak', 'adminStreak'].forEach(id => { const el = document.getElementById(id); if(el) el.innerText = p.streak; });
+        ['uiPoints', 'dashPoints', 'adminTotalPoints'].forEach(id => { const el = document.getElementById(id); if(el) el.innerText = p.points; });
         
-        if(document.getElementById('uiXpBar')) document.getElementById('uiXpBar').style.width = `${(p.xp / (p.level * 200)) * 100}%`;
+        const xpBar = document.getElementById('uiXpBar');
+        if(xpBar) xpBar.style.width = `${(p.xp / (p.level * 200)) * 100}%`;
         
-        if(document.getElementById('dashTodayPoints')) {
+        const dashPtsEl = document.getElementById('dashTodayPoints');
+        if(dashPtsEl) {
             const today = new Date().toLocaleDateString();
             const logs = await db.get('activityLog');
             const todayPts = logs.filter(l => l.date === today).reduce((sum, l) => sum + l.points, 0);
-            document.getElementById('dashTodayPoints').innerText = todayPts;
+            dashPtsEl.innerText = todayPts;
         }
     },
 
@@ -593,36 +606,39 @@ const app = {
         const logsAll = await db.get('activityLog');
         const logs = logsAll.reverse().slice(0, 5);
         const cont = document.getElementById('dashRecentLog');
-        cont.innerHTML = logs.map(l => `<p style="font-size:0.8rem; border-bottom:1px solid #eee; padding:5px 0;">[${l.time}] ${l.title} (+${l.points} pts)</p>`).join('');
+        if(cont) cont.innerHTML = logs.map(l => `<p style="font-size:0.8rem; border-bottom:1px solid #eee; padding:5px 0;">[${l.time}] ${l.title} (+${l.points} pts)</p>`).join('');
         
         const memories = await db.get('memories');
         const latestM = memories.slice(-1)[0];
-        if(latestM) document.getElementById('dashLatestMemory').innerText = latestM.title;
+        const latestEl = document.getElementById('dashLatestMemory');
+        if(latestEl && latestM) latestEl.innerText = latestM.title;
     },
 
     async renderLog() {
         const logs = await db.get('activityLog');
         logs.reverse();
-        document.getElementById('totalActions').innerText = logs.length;
-        document.getElementById('fullLogList').innerHTML = logs.map(l => `
+        const totalEl = document.getElementById('totalActions');
+        if(totalEl) totalEl.innerText = logs.length;
+        const listEl = document.getElementById('fullLogList');
+        if(listEl) listEl.innerHTML = logs.map(l => `
             <div style="background:white; padding:10px; border-radius:10px; margin-bottom:10px; border-left:4px solid var(--blush-pink);">
                 <strong>${l.date} ${l.time}</strong><br>${l.title}: ${l.details} (+${l.points} pts)
             </div>
         `).join('');
     },
 
-    // Admin Panel Logic
     async showAdminTab(e, tabId) {
         document.querySelectorAll('.admin-tab').forEach(t => t.classList.add('hidden'));
         document.querySelectorAll('.admin-nav-item').forEach(b => b.classList.remove('active'));
         const tabEl = document.getElementById(`adminTab${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`);
         if(tabEl) tabEl.classList.remove('hidden');
-        if(e && e.target) e.target.classList.add('active');
+        if(e && e.currentTarget) e.currentTarget.classList.add('active');
         await this.renderAdmin();
     },
 
     async renderAdmin() {
         const p = await db.getProfile();
+        if(!p) return;
         const logs = await db.get('activityLog');
         logs.reverse();
         const journeys = await db.get('dailyJourneys');
@@ -630,26 +646,18 @@ const app = {
         const memories = await db.get('memories');
         memories.reverse();
 
-        // Update Stats
-        if(document.getElementById('adminTotalPoints')) document.getElementById('adminTotalPoints').innerText = p.points;
-        if(document.getElementById('adminStreak')) document.getElementById('adminStreak').innerText = p.streak;
-        if(document.getElementById('adminLevel')) document.getElementById('adminLevel').innerText = p.level;
+        await this.updateStats();
 
-        // Daily Report (Grouped by Date)
         const reportList = document.getElementById('adminDailyReportList');
         if(reportList) {
             reportList.innerHTML = '';
             const groupedLogs = {};
-            logs.forEach(l => {
-                if(!groupedLogs[l.date]) groupedLogs[l.date] = [];
-                groupedLogs[l.date].push(l);
-            });
+            logs.forEach(l => { if(!groupedLogs[l.date]) groupedLogs[l.date] = []; groupedLogs[l.date].push(l); });
 
             Object.keys(groupedLogs).forEach(date => {
                 const dayLogs = groupedLogs[date];
                 const dayJourneys = journeys.filter(j => j.date === date);
                 const dayPoints = dayLogs.reduce((s, l) => s + l.points, 0);
-                
                 const dayDiv = document.createElement('div');
                 dayDiv.className = 'glass-card admin-card';
                 dayDiv.style.borderLeft = '6px solid var(--blush-pink)';
@@ -657,122 +665,38 @@ const app = {
                 const missionData = dayJourneys.length > 0 && dayJourneys[0].data.mission ? dayJourneys[0].data.mission : null;
                 const activityData = dayJourneys.length > 0 && dayJourneys[0].data.activity ? dayJourneys[0].data.activity : null;
 
-                const missionHtml = missionData ? `
-                    <div style="margin-top: 15px; padding: 10px; background: #fff; border-radius: 10px; border: 1px dashed var(--lavender);">
-                        <p style="font-size: 0.8rem; margin-bottom: 5px; color: var(--lavender-dark);"><strong>🎯 Mission:</strong> ${missionData.text}</p>
-                        ${missionData.notes ? `<p style="font-size: 0.85rem; background: #fdfdfd; padding: 5px; border-radius: 5px;"><strong>Notes:</strong> ${missionData.notes}</p>` : ''}
-                        ${missionData.photo ? `
-                            <div style="margin-top:10px;">
-                                <img src="${missionData.photo}" style="max-width: 150px; border-radius: 8px; cursor: pointer;" onclick="app.downloadImage('${missionData.photo}', 'mission_${date}.png')">
-                                <br><small style="color: var(--text-light)">Click to download</small>
-                            </div>` : ''}
-                    </div>
-                ` : '';
+                const missionHtml = missionData ? `<div style="margin-top: 15px; padding: 10px; background: #fff; border-radius: 10px; border: 1px dashed var(--lavender);"><p style="font-size: 0.8rem; margin-bottom: 5px; color: var(--lavender-dark);"><strong>🎯 Mission:</strong> ${missionData.text}</p>${missionData.notes ? `<p style="font-size: 0.85rem; background: #fdfdfd; padding: 5px; border-radius: 5px;"><strong>Notes:</strong> ${missionData.notes}</p>` : ''}${missionData.photo ? `<div style="margin-top:10px;"><img src="${missionData.photo}" style="max-width: 150px; border-radius: 8px; cursor: pointer;" onclick="app.downloadImage('${missionData.photo}', 'mission_${date}.png')"><br><small style="color: var(--text-light)">Click to download</small></div>` : ''}</div>` : '';
+                const activityHtml = activityData ? `<div style="margin-top: 10px; padding: 10px; background: #fff; border-radius: 10px; border: 1px dashed var(--sky-blue);"><p style="font-size: 0.8rem; margin-bottom: 5px; color: var(--sky-blue-dark);"><strong>🏃 Activity:</strong> ${activityData.text}</p>${activityData.photo ? `<div style="margin-top:10px;"><img src="${activityData.photo}" style="max-width: 150px; border-radius: 8px; cursor: pointer;" onclick="app.downloadImage('${activityData.photo}', 'activity_${date}.png')"><br><small style="color: var(--text-light)">Click to download</small></div>` : ''}</div>` : '';
 
-                const activityHtml = activityData ? `
-                    <div style="margin-top: 10px; padding: 10px; background: #fff; border-radius: 10px; border: 1px dashed var(--sky-blue);">
-                        <p style="font-size: 0.8rem; margin-bottom: 5px; color: var(--sky-blue-dark);"><strong>🏃 Activity:</strong> ${activityData.text}</p>
-                        ${activityData.photo ? `
-                            <div style="margin-top:10px;">
-                                <img src="${activityData.photo}" style="max-width: 150px; border-radius: 8px; cursor: pointer;" onclick="app.downloadImage('${activityData.photo}', 'activity_${date}.png')">
-                                <br><small style="color: var(--text-light)">Click to download</small>
-                            </div>` : ''}
-                    </div>
-                ` : '';
-
-                dayDiv.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
-                        <h4 style="margin:0;">📅 ${date}</h4>
-                        <span style="font-weight:bold; color: var(--lavender-dark);">+${dayPoints} Points Earned</span>
-                    </div>
-                    <div style="font-size: 0.9rem;">
-                        <p><strong>Journeys Completed:</strong> ${dayJourneys.length}</p>
-                        <p><strong>Total Actions:</strong> ${dayLogs.length}</p>
-                        <p><strong>Daily Moods:</strong> ${dayJourneys.map(j => `<span class="mood-tag" style="background:var(--lavender); margin-right:5px;">${j.data.mood}</span>`).join('') || 'No journey started'}</p>
-                        ${missionHtml}
-                        ${activityHtml}
-                    </div>
-                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #eee;">
-                        <details>
-                            <summary style="cursor:pointer; font-size: 0.8rem; color: var(--text-light);">View Day Timeline</summary>
-                            <div style="margin-top:10px; font-size: 0.8rem;">
-                                ${dayLogs.map(l => `<div style="margin-bottom:5px;">[${l.time}] ${l.title} (+${l.points} pts)</div>`).join('')}
-                            </div>
-                        </details>
-                    </div>
-                `;
+                dayDiv.innerHTML = `<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;"><h4 style="margin:0;">📅 ${date}</h4><span style="font-weight:bold; color: var(--lavender-dark);">+${dayPoints} Points</span></div><div style="font-size: 0.9rem;"><p><strong>Journeys:</strong> ${dayJourneys.length}</p><p><strong>Actions:</strong> ${dayLogs.length}</p><p><strong>Moods:</strong> ${dayJourneys.map(j => `<span class="memory-tag">${j.data.mood}</span>`).join('') || 'None'}</p>${missionHtml}${activityHtml}</div>`;
                 reportList.appendChild(dayDiv);
             });
             if(Object.keys(groupedLogs).length === 0) reportList.innerHTML = '<p>No activity recorded yet.</p>';
         }
 
         const tbodyL = document.querySelector('#adminLogTable tbody');
-        if(tbodyL) {
-            tbodyL.innerHTML = logs.map(l => `
-                <tr><td>${l.date} ${l.time}</td><td>${l.title}</td><td>${l.details}</td><td>${l.points}</td></tr>
-            `).join('');
-        }
-
-        const tbodyJ = document.querySelector('#adminJournalTable tbody');
-        if(tbodyJ) {
-            const journalsList = journeys.filter(j => j.data && j.data.journal).map(j => ({
-                date: j.date,
-                mood: j.data.mood,
-                feeling: j.data.journal.feeling,
-                reason: j.data.journal.reason,
-                gratitude: j.data.journal.gratitude
-            }));
-            
-            tbodyJ.innerHTML = journalsList.map(j => `
-                <tr>
-                    <td>${j.date}</td>
-                    <td><span class="mood-tag" style="background:var(--lavender);">${j.mood}</span></td>
-                    <td><strong>Feelings:</strong> ${j.feeling}<br><strong>Reason:</strong> ${j.reason}</td>
-                    <td>${j.gratitude}</td>
-                </tr>
-            `).join('');
-        }
+        if(tbodyL) tbodyL.innerHTML = logs.map(l => `<tr><td>${l.date} ${l.time}</td><td>${l.title}</td><td>${l.details}</td><td>${l.points}</td></tr>`).join('');
 
         const grid = document.getElementById('adminMemoriesGrid');
         if(grid) {
-            grid.innerHTML = '';
-            memories.forEach(m => {
-                const div = document.createElement('div');
-                div.className = 'memory-card paper-texture tape-effect';
-                const desc = m.description || '';
-                const hasImg = m.images && m.images[0];
-                div.innerHTML = `
-                    ${hasImg ? `<img src="${m.images[0]}" style="width:100%; height:150px; object-fit:cover; border-radius:10px; margin-bottom:10px;">` : ''}
-                    <div style="padding: 5px;">
-                        <div style="display:flex; justify-content:space-between;">
-                            <strong>${m.title}</strong>
-                            ${hasImg ? `<button style="font-size:0.7rem; padding:2px 5px;" onclick="app.downloadImage('${m.images[0]}', '${m.title}.png')">Download</button>` : ''}
-                        </div>
-                        <small style="color:var(--text-light)">${m.date || 'Old Yaad'}</small><br>
-                        <p style="font-size:0.75rem; margin-top:10px;">${desc.substring(0, 80)}...</p>
-                        <div style="margin-top:10px; font-size:0.7rem; color:var(--lavender-dark);">
-                            👤 ${m.people || 'Self'} | 📍 ${m.location || 'Unknown'}
-                        </div>
-                    </div>
-                `;
-                grid.appendChild(div);
-            });
-            if(memories.length === 0) grid.innerHTML = '<p>No memories added yet.</p>';
+            grid.innerHTML = memories.map(m => `
+                <div class="memory-card paper-texture tape-effect">
+                    ${m.images && m.images[0] ? `<img src="${m.images[0]}" style="width:100%; height:120px; object-fit:cover; border-radius:10px;">` : ''}
+                    <strong>${m.title}</strong><br><small>${m.date || ''}</small>
+                </div>
+            `).join('');
         }
     },
 
-    downloadImage(base64, filename) {
-        const a = document.createElement('a');
-        a.href = base64; a.download = filename; a.click();
-    },
-
-    openModal(id) { document.getElementById(id).classList.remove('hidden'); },
-    closeModal(id) { document.getElementById(id).classList.add('hidden'); },
+    downloadImage(base64, filename) { const a = document.createElement('a'); a.href = base64; a.download = filename; a.click(); },
+    openModal(id) { document.getElementById(id)?.classList.remove('hidden'); },
+    closeModal(id) { document.getElementById(id)?.classList.add('hidden'); },
     
     async openRandomBlessing() {
         const b = await db.get('blessings');
-        if(!b.length) return alert("Jar is empty!");
-        document.getElementById('randomBlessingDisplay').innerText = `"${b[Math.floor(Math.random() * b.length)].text}"`;
+        const el = document.getElementById('randomBlessingDisplay');
+        if(el && b.length) el.innerText = `"${b[Math.floor(Math.random() * b.length)].text}"`;
+        else if(el) el.innerText = "Jar is empty!";
     },
 
     async renderTimeline() {
@@ -780,29 +704,12 @@ const app = {
         logs.reverse();
         const cont = document.getElementById('timelineContainer');
         if(!cont) return;
-        cont.innerHTML = '';
-        
-        if(logs.length === 0) {
-            cont.innerHTML = '<p style="text-align:center; padding: 20px;">No journey records yet. Start your first journey today! 🌸</p>';
-            return;
-        }
-
-        logs.forEach(l => {
-            const div = document.createElement('div');
-            div.className = 'timeline-item glass-card';
-            div.style.padding = '20px';
-            div.style.marginBottom = '15px';
-            div.style.borderLeft = '4px solid var(--blush-pink)';
-            div.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                    <strong style="color:var(--lavender-dark)">${l.date} ${l.time}</strong>
-                    <span style="font-size:0.8rem; background:var(--lavender); padding:2px 8px; border-radius:10px;">+${l.points} pts</span>
-                </div>
-                <h4 style="margin:0;">${l.title}</h4>
-                <p style="font-size:0.9rem; margin-top:5px;">${l.details}</p>
-            `;
-            cont.appendChild(div);
-        });
+        cont.innerHTML = logs.map(l => `
+            <div class="timeline-item glass-card" style="border-left: 4px solid var(--blush-pink); margin-bottom: 15px; padding: 15px;">
+                <div style="display:flex; justify-content:space-between;"><small>${l.date} ${l.time}</small><span>+${l.points}</span></div>
+                <strong>${l.title}</strong><p>${l.details}</p>
+            </div>
+        `).join('') || '<p>No records found.</p>';
     },
 
     async startCalmMode() {
@@ -811,42 +718,36 @@ const app = {
         const text = document.getElementById('calmBreatheTimer');
         const circle = document.getElementById('calmBreatheCircle');
         if(this.state.calmTimer) clearInterval(this.state.calmTimer);
-        
         this.state.calmTimer = setInterval(async () => {
             sec--;
             if(text) text.innerText = `${sec} seconds`;
             if(circle) circle.innerText = sec % 8 < 4 ? "Inhale..." : "Exhale...";
-            
-            if(sec <= 0) {
-                clearInterval(this.state.calmTimer);
-                alert("Calm Mode Finished. Alhamdulillah. ✨");
-                await this.showScreen('welcomeScreen');
-            }
+            if(sec <= 0) { clearInterval(this.state.calmTimer); alert("Calm Mode Finished. ✨"); await this.showScreen('welcomeScreen'); }
         }, 1000);
     },
 
-    async resetFullUser() {
-        if(confirm("Are you sure? This will delete EVERYTHING (Memories, Journals, Stats). The user will get a completely fresh start.")) {
-            await db.clear();
-            alert("Database Wiped! User will have a fresh start next time they log in.");
-            window.location.reload();
-        }
-    },
-
+    async resetFullUser() { if(confirm("Are you sure? EVERYTHING will be deleted.")) { await db.clear(); alert("Database Wiped!"); window.location.reload(); } },
     async resetUserStats() {
-        if(confirm("Are you sure? This will reset Points, Level, and Streak but KEEP Memories and Journals.")) {
+        if(confirm("Reset Stats but keep Memories?")) {
             const p = await db.getProfile();
-            p.points = 0;
-            p.xp = 0;
-            p.level = 1;
-            p.streak = 0;
-            p.lastJourneyDate = null;
-            p.currentJourneyStep = 1;
+            if(!p) return;
+            p.points = 0; p.xp = 0; p.level = 1; p.streak = 0; p.lastJourneyDate = null; p.currentJourneyStep = 1;
             await db.setProfile(p);
-            alert("User stats reset! Interface will be fresh for stats.");
+            alert("Stats reset!");
             await this.renderAdmin();
         }
     }
 };
 
-document.addEventListener('DOMContentLoaded', async () => await app.init());
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log("DOM loaded, waiting for Supabase...");
+    let retries = 0;
+    const checkSupabase = setInterval(async () => {
+        if (window.supabase || retries > 10) {
+            clearInterval(checkSupabase);
+            console.log("Supabase ready, initializing app...");
+            await app.init();
+        }
+        retries++;
+    }, 500);
+});
