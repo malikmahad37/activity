@@ -7,24 +7,37 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
 // Initialize Supabase
 const SUPABASE_URL = 'https://rmjulmgszlogdpclldhp.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_pPcJqEpi7E6sigaCeV2JSQ_huoT_MRL';
-const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+let _supabase = null;
+function getClient() {
+    if (!_supabase && window.supabase) {
+        _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
+    return _supabase;
+}
 
 class SupabaseDB {
     async get(table) {
-        if (!supabaseClient) return [];
-        const { data, error } = await supabaseClient.from(table).select('*');
+        const client = getClient();
+        if (!client) return [];
+        const { data, error } = await client.from(table).select('*');
         if (error) console.error(`Error fetching ${table}:`, error);
         return data || [];
     }
     async insert(table, item) {
-        if (!supabaseClient) return item;
-        const { data, error } = await supabaseClient.from(table).insert([item]).select();
+        const client = getClient();
+        if (!client) return item;
+        const { data, error } = await client.from(table).insert([item]).select();
         if (error) console.error(`Error inserting into ${table}:`, error);
         return data ? data[0] : item;
     }
     async getProfile() {
-        if (!supabaseClient) return null;
-        const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', 'ayesha').single();
+        const client = getClient();
+        if (!client) {
+            console.error("Supabase client not initialized.");
+            return null;
+        }
+        const { data, error } = await client.from('profiles').select('*').eq('id', 'ayesha').single();
         if (error || !data) {
             const def = { 
                 id: 'ayesha',
@@ -38,22 +51,24 @@ class SupabaseDB {
                 journeyData: {} 
             };
             if (error && error.code === 'PGRST116') { // Not found
-                await supabaseClient.from('profiles').insert([def]);
+                await client.from('profiles').insert([def]);
             }
             return def;
         }
         return data;
     }
     async setProfile(p) {
-        if (!supabaseClient) return;
-        const { error } = await supabaseClient.from('profiles').update(p).eq('id', 'ayesha');
+        const client = getClient();
+        if (!client) return;
+        const { error } = await client.from('profiles').update(p).eq('id', 'ayesha');
         if (error) console.error('Error updating profile:', error);
     }
     async clear() {
-        if (!supabaseClient) return;
+        const client = getClient();
+        if (!client) return;
         const tables = ['activityLog', 'memories', 'blessings', 'dailyJourneys'];
         for (const t of tables) {
-            await supabaseClient.from(t).delete().neq('id', '0'); // Delete all rows
+            await client.from(t).delete().neq('id', '0'); // Delete all rows
         }
         await this.setProfile({ 
             xp: 0, points: 0, level: 1, streak: 0, 
