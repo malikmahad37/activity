@@ -302,21 +302,26 @@ const app = {
         const s = this.state.journeyStep;
         document.querySelectorAll('.journey-step').forEach(step => step.classList.add('hidden'));
         document.getElementById(`step${s}`)?.classList.remove('hidden');
-        const titleEl = document.getElementById('journeyTitle');
-        if(titleEl) titleEl.innerText = `Step ${s}: ${this.getStepTitle(s)}`;
-        const progEl = document.getElementById('journeyProgress');
+        const stepEl = document.getElementById('currentStepNum');
+        if(stepEl) stepEl.innerText = s;
+        const progEl = document.getElementById('journeyProgressBar');
         if(progEl) progEl.style.width = `${(s / 11) * 100}%`;
 
         if(s === 2) {
             const mood = this.state.journeyData.mood;
-            const quoteEl = document.getElementById('journeyQuote');
-            if(quoteEl) quoteEl.innerText = DATA.quotes[mood] || "Believe in yourself.";
+            const quoteEl = document.getElementById('journeyMoodMsg');
+            if(quoteEl) quoteEl.innerText = DATA.quotes[mood] || "Khud par yaqeen rakhein.";
         }
         if(s === 3) this.startBreatheExercise();
         if(s === 4) {
             const m = DATA.missions[Math.floor(Math.random() * DATA.missions.length)];
             const misEl = document.getElementById('journeyMissionText');
             if(misEl) misEl.innerText = m;
+        }
+        if(s === 7) {
+            const aff = DATA.affirmations[Math.floor(Math.random() * DATA.affirmations.length)];
+            const affEl = document.getElementById('journeyAffirmationText');
+            if(affEl) affEl.innerText = aff;
         }
         if(s === 9) {
             const a = DATA.activities[Math.floor(Math.random() * DATA.activities.length)];
