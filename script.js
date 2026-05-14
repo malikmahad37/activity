@@ -412,6 +412,44 @@ const app = {
             if(file) { const reader = new FileReader(); reader.onload = async (e) => await finalize(e.target.result); reader.readAsDataURL(file); }
             else await finalize();
         }
+        
+        if(type === 'photo') {
+            const file = document.getElementById('imgUploadJ').files[0];
+            const caption = document.getElementById('imgCaptionJ').value;
+            const finalize = async (photoData = null) => {
+                this.state.journeyData.photo = { caption, photo: photoData };
+                await this.logAction('photo', 'Daily Photo Saved', caption || 'No caption');
+                await this.addPoints(POINT_VALUES.photo);
+                document.getElementById('btnNext6')?.classList.remove('hidden');
+            };
+            if(file) { const reader = new FileReader(); reader.onload = async (e) => await finalize(e.target.result); reader.readAsDataURL(file); }
+            else await finalize();
+        }
+        
+        if(type === 'oldMemory') {
+            const title = document.getElementById('omTitleJ').value || 'Memory';
+            const desc = document.getElementById('omDescJ').value;
+            const special = document.getElementById('omSpecialJ').value;
+            const file = document.getElementById('omImageJ').files[0];
+            const finalize = async (photoData = null) => {
+                this.state.journeyData.oldMemoryDone = true;
+                this.state.journeyData.oldMemory = { title, desc, special, photo: photoData };
+                await this.logAction('old_memory', 'Memory Saved', title);
+                await this.addPoints(POINT_VALUES.old_memory);
+                
+                const memoryEntry = {
+                    title: title,
+                    description: desc + (special ? `\nWhy it's special: ${special}` : ''),
+                    date: new Date().toLocaleDateString(),
+                    images: photoData ? [photoData] : []
+                };
+                await db.insert('memories', memoryEntry);
+                
+                document.getElementById('btnNext10')?.classList.remove('hidden');
+            };
+            if(file) { const reader = new FileReader(); reader.onload = async (e) => await finalize(e.target.result); reader.readAsDataURL(file); }
+            else await finalize();
+        }
     },
 
     async startBreatheExercise() {
@@ -462,16 +500,26 @@ const app = {
             if(dailyReport) {
                 dailyReport.innerHTML = journeys.length === 0 ? '<p>No journeys completed yet.</p>' : journeys.map(j => {
                     const d = j.data || {};
-                    return `<div class="daily-row">
-                        <div>
-                            <strong>${j.date || 'Unknown Date'}</strong><br>
-                            <span class="mood-tag" style="background:#eef0f7; color:black;">Mood: ${d.mood || 'N/A'}</span>
+                    
+                    let imgsHtml = '';
+                    if(d.mission && d.mission.photo) imgsHtml += `<img src="${d.mission.photo}" style="width:100px; height:100px; object-fit:cover; border-radius:10px; border: 1px solid #eee;">`;
+                    if(d.activity && d.activity.photo) imgsHtml += `<img src="${d.activity.photo}" style="width:100px; height:100px; object-fit:cover; border-radius:10px; border: 1px solid #eee;">`;
+                    if(d.photo && d.photo.photo) imgsHtml += `<img src="${d.photo.photo}" style="width:100px; height:100px; object-fit:cover; border-radius:10px; border: 1px solid #eee;">`;
+
+                    return `<div class="daily-row" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+                        <div style="width: 100%; display: flex; justify-content: space-between;">
+                            <div>
+                                <strong>${j.date || 'Unknown Date'}</strong><br>
+                                <span class="mood-tag" style="background:#eef0f7; color:black;">Mood: ${d.mood || 'N/A'}</span>
+                            </div>
+                            <div style="font-size:0.9rem; text-align: right;">
+                                ${d.missionCompleted ? '✅ Mission <br>' : ''}
+                                ${d.journal ? '📝 Journal <br>' : ''}
+                                ${d.activityDone ? '🏃 Activity <br>' : ''}
+                                ${d.photo ? '📸 Photo' : ''}
+                            </div>
                         </div>
-                        <div style="font-size:0.9rem;">
-                            ${d.missionCompleted ? '✅ Mission ' : ''}
-                            ${d.journal ? '📝 Journal ' : ''}
-                            ${d.activityDone ? '🏃 Activity' : ''}
-                        </div>
+                        ${imgsHtml ? `<div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;">${imgsHtml}</div>` : ''}
                     </div>`;
                 }).join('');
             }
