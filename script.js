@@ -566,6 +566,45 @@ const app = {
         const formattedTabId = 'adminTab' + tabId.charAt(0).toUpperCase() + tabId.slice(1);
         const targetTab = document.getElementById(formattedTabId);
         if(targetTab) targetTab.classList.remove('hidden');
+    },
+
+    async resetUserStats() {
+        if(!confirm("Are you sure you want to reset user stats (Level, Points, Streak)? This cannot be undone.")) return;
+        const p = await db.getProfile();
+        if(p) {
+            p.xp = 0; p.points = 0; p.level = 1; p.streak = 0; p.currentJourneyStep = 1; p.journeyData = {};
+            await db.setProfile(p);
+            await this.updateStats();
+            alert("User stats have been reset to 0.");
+        }
+    },
+
+    async resetFullUser() {
+        if(!confirm("DANGER! This will delete ALL user history, journals, memories, and logs. Are you absolutely sure?")) return;
+        if(!confirm("Are you REALLY sure? This is a permanent wipe.")) return;
+        
+        const client = getClient();
+        if(client) {
+            try {
+                // Delete from all tables using gte('id', 0) to target all rows
+                await client.from('activityLog').delete().gte('id', 0);
+                await client.from('dailyJourneys').delete().gte('id', 0);
+                await client.from('memories').delete().gte('id', 0);
+                await client.from('blessings').delete().gte('id', 0);
+                
+                const p = await db.getProfile();
+                if(p) {
+                    p.xp = 0; p.points = 0; p.level = 1; p.streak = 0; 
+                    p.lastJourneyDate = null; p.currentJourneyStep = 1; p.journeyData = {};
+                    await db.setProfile(p);
+                }
+                await this.renderAdmin();
+                alert("Entire database has been wiped clean. Fresh start ready.");
+            } catch(e) {
+                console.error("Failed to wipe database:", e);
+                alert("Error wiping database. Check console.");
+            }
+        }
     }
 };
 
