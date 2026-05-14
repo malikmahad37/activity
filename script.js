@@ -441,8 +441,14 @@ const app = {
     },
 
     async renderAdmin() {
+        alert("Admin panel is loading data...");
         try {
-            const p = await db.getProfile(); if(!p) return;
+            const p = await db.getProfile(); 
+            if(!p) {
+                alert("Failed to load user profile. Data rendering stopped.");
+                return;
+            }
+            alert("Profile loaded successfully. Fetching logs...");
             
             // 1. Logs
             const logs = await db.get('activityLog');
