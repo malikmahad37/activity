@@ -33,6 +33,10 @@ body {
     overflow-x: hidden;
 }
 
+.hidden {
+    display: none !important;
+}
+
 /* Floating Elements */
 .floating-bg {
     position: fixed;
