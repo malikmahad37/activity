@@ -188,7 +188,13 @@ const app = {
     checkAuth() {
         const session = sessionStorage.getItem('bloom_session');
         if(session) this.login(session);
-        else this.showPanel('authPanel');
+        else {
+            if (document.getElementById('adminAuthPanel')) {
+                this.showPanel('adminAuthPanel');
+            } else {
+                this.showPanel('authPanel');
+            }
+        }
     },
 
     async login(role) {
