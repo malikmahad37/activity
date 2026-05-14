@@ -442,9 +442,71 @@ const app = {
 
     async renderAdmin() {
         const p = await db.getProfile(); if(!p) return;
+        
+        // 1. Logs
         const logs = await db.get('activityLog'); logs.reverse();
         const tbodyL = document.querySelector('#adminLogTable tbody');
         if(tbodyL) tbodyL.innerHTML = logs.map(l => `<tr><td>${l.date} ${l.time}</td><td>${l.title}</td><td>${l.details}</td><td>${l.points}</td></tr>`).join('');
+        
+        // 2. Daily Journeys
+        const journeys = await db.get('dailyJourneys');
+        const dailyReport = document.getElementById('adminDailyReportList');
+        if(dailyReport) {
+            dailyReport.innerHTML = journeys.length === 0 ? '<p>No journeys completed yet.</p>' : journeys.map(j => {
+                const d = j.data || {};
+                return `<div class="daily-row">
+                    <div>
+                        <strong>${j.date || 'Unknown Date'}</strong><br>
+                        <span class="mood-tag" style="background:#eef0f7; color:black;">Mood: ${d.mood || 'N/A'}</span>
+                    </div>
+                    <div style="font-size:0.9rem;">
+                        ${d.missionCompleted ? '✅ Mission ' : ''}
+                        ${d.journal ? '📝 Journal ' : ''}
+                        ${d.activityDone ? '🏃 Activity' : ''}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // 3. Journals
+        const tbodyJ = document.querySelector('#adminJournalTable tbody');
+        if(tbodyJ) {
+            const jrnls = journeys.filter(j => j.data && j.data.journal);
+            tbodyJ.innerHTML = jrnls.length === 0 ? '<tr><td colspan="4" style="text-align:center;">No journals yet.</td></tr>' : jrnls.map(j => {
+                const jrnl = j.data.journal;
+                return `<tr>
+                    <td>${j.date || 'Unknown Date'}</td>
+                    <td>${j.data.mood || 'N/A'}</td>
+                    <td><strong>Feeling:</strong> ${jrnl.feeling || ''}<br><strong>Reason:</strong> ${jrnl.reason || ''}</td>
+                    <td>${jrnl.gratitude || ''}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // 4. Memories
+        const mems = await db.get('memories');
+        const memGrid = document.getElementById('adminMemoriesGrid');
+        if(memGrid) {
+            memGrid.innerHTML = mems.length === 0 ? '<p>No memories saved.</p>' : mems.map(m => `
+                <div class="glass-card stat-card admin-card" style="padding:15px; text-align:left;">
+                    <h4 style="margin:0 0 5px;">${m.title || 'Memory'}</h4>
+                    <p style="font-size:0.8rem; margin:0 0 10px; color:gray;">${m.date || ''}</p>
+                    <p style="font-size:0.9rem;">${m.description || ''}</p>
+                    ${m.images && m.images.length ? `<img src="${m.images[0]}" style="width:100%; border-radius:10px; margin-top:10px; border: 1px solid #eee;">` : ''}
+                </div>
+            `).join('');
+        }
+    },
+
+    showAdminTab(e, tabId) {
+        document.querySelectorAll('.admin-nav-item').forEach(item => item.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        document.querySelectorAll('.admin-tab').forEach(tab => tab.classList.add('hidden'));
+        
+        // capitalize first letter
+        const formattedTabId = 'adminTab' + tabId.charAt(0).toUpperCase() + tabId.slice(1);
+        const targetTab = document.getElementById(formattedTabId);
+        if(targetTab) targetTab.classList.remove('hidden');
     }
 };
 
