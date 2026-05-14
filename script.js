@@ -335,6 +335,36 @@ const app = {
         }
     },
 
+    async prevStep() {
+        if(this.state.journeyStep > 1) {
+            this.state.journeyStep--;
+            const p = await db.getProfile();
+            if(p) {
+                p.currentJourneyStep = this.state.journeyStep;
+                await db.setProfile(p);
+            }
+            this.renderStep();
+        }
+    },
+
+    skipBreathe() {
+        if(this.state.breatheTimer) clearInterval(this.state.breatheTimer);
+        document.getElementById('btnNext3')?.classList.remove('hidden');
+        this.nextStep();
+    },
+
+    refreshTask(type) {
+        if(type === 'mission') {
+            const m = DATA.missions[Math.floor(Math.random() * DATA.missions.length)];
+            const misEl = document.getElementById('journeyMissionText');
+            if(misEl) misEl.innerText = m;
+        } else if(type === 'activity') {
+            const a = DATA.activities[Math.floor(Math.random() * DATA.activities.length)];
+            const actEl = document.getElementById('journeyActivityText');
+            if(actEl) actEl.innerText = a;
+        }
+    },
+
     async completeStepAction(type) {
         if(type === 'mission') {
             const notes = document.getElementById('missionNotesJ').value;
